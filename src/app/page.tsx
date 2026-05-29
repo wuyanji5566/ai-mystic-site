@@ -41,6 +41,25 @@ const roadmap = [
   },
 ];
 
+const interactiveLoops = [
+  {
+    title: "报告追问",
+    desc: "生成报告后继续问事业、感情、财富、年度计划等具体问题。",
+  },
+  {
+    title: "30 天计划",
+    desc: "把玄学报告转成每周可执行的小计划，适合提高复访率。",
+  },
+  {
+    title: "截图分享",
+    desc: "把一句话总结和行动建议整理成更适合分享的表达。",
+  },
+  {
+    title: "人工咨询承接",
+    desc: "用户看完 AI 深化后，可通过微信付款进入人工服务。",
+  },
+];
+
 const links = [
   ["用户中心", "/account"],
   ["历史报告", "/reports"],
@@ -168,6 +187,32 @@ export default function Home() {
                 <p className="text-sm font-bold text-[#8b2732]">{item.step}</p>
                 <h3 className="mt-5 text-xl font-bold">{item.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-[#52615b]">{item.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
+              Interactive Service
+            </p>
+            <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
+              不止生成一次报告，还能继续深化和转化。
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-[#d8cdb9]">
+              用户看完报告后，可以继续追问。这个环节能增加停留时间，也能自然引导到 {siteConfig.fullReportPriceLabel} 完整版和人工咨询。
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {interactiveLoops.map((item) => (
+              <article key={item.title} className="border border-[#d7aa55]/18 bg-[#141b18] p-5">
+                <h3 className="font-[family-name:var(--font-display)] text-2xl text-[#fff8ec]">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-[#d8cdb9]">{item.desc}</p>
               </article>
             ))}
           </div>

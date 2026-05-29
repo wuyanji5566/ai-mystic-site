@@ -12,6 +12,20 @@ import {
   type SavedMysticReport,
 } from "@/lib/report-storage";
 
+type FollowupResponse = {
+  answer: string;
+  mode: "ai" | "demo";
+  statusMessage: string;
+};
+
+const followupPresets = [
+  "帮我深挖事业方向，给我适合的职业路径和避坑提醒",
+  "帮我深挖感情关系，分析适合的沟通方式和关系边界",
+  "帮我深挖财富模式，给我低风险的赚钱和消费建议",
+  "帮我做未来 30 天行动计划，每周要做什么",
+  "帮我把这份报告整理成适合发朋友圈的简短总结",
+];
+
 export function ReportDetail({ reportId }: { reportId: string }) {
   const [report, setReport] = useState<SavedMysticReport | null>(null);
   const [storageMode, setStorageMode] = useState<ReportStorageMode>("local");
@@ -19,6 +33,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [copyMessage, setCopyMessage] = useState("");
+  const [followupQuestion, setFollowupQuestion] = useState(followupPresets[0]);
+  const [followup, setFollowup] = useState<FollowupResponse | null>(null);
+  const [followupError, setFollowupError] = useState("");
+  const [isFollowupLoading, setIsFollowupLoading] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -59,6 +77,40 @@ export function ReportDetail({ reportId }: { reportId: string }) {
     }
 
     setCopyMessage(`解锁码不正确。请添加客服微信 ${siteConfig.contactWeChat} 处理人工解锁。`);
+  }
+
+  async function handleFollowup(question = followupQuestion) {
+    if (!report) return;
+
+    setFollowupQuestion(question);
+    setFollowupError("");
+    setFollowup(null);
+    setIsFollowupLoading(true);
+
+    try {
+      const response = await fetch("/api/report-followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reportTitle: report.title,
+          report: report.report,
+          profile: report.profile,
+          question,
+        }),
+      });
+      const data = (await response.json()) as unknown;
+
+      if (!response.ok) {
+        const errorData = data as { error?: string };
+        throw new Error(errorData.error || "深化失败，请稍后再试。");
+      }
+
+      setFollowup(data as FollowupResponse);
+    } catch (error) {
+      setFollowupError(error instanceof Error ? error.message : "深化失败，请稍后再试。");
+    } finally {
+      setIsFollowupLoading(false);
+    }
   }
 
   if (isLoading) {
@@ -215,6 +267,63 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             当前模式：{report.mode === "ai" ? "真实 AI 生成" : "演示报告"}。内容仅供娱乐和自我探索。
           </p>
         </article>
+
+        <section className="mt-6 border border-[#dfd2c1] bg-white p-5">
+          <p className="text-sm font-semibold text-[#9a563f]">继续深化</p>
+          <h2 className="mt-2 text-2xl font-semibold">看完报告后继续追问</h2>
+          <p className="mt-3 text-sm leading-7 text-[#6f6254]">
+            用户生成报告后，可以继续选择一个方向深挖，网站会结合原报告再次生成具体行动建议。这一步能增加停留时间，也能引导用户购买完整版或人工咨询。
+          </p>
+
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {followupPresets.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => handleFollowup(preset)}
+                disabled={isFollowupLoading}
+                className="border border-[#d9c7b2] bg-[#fffaf2] px-4 py-3 text-left text-sm font-semibold leading-6 transition hover:border-[#9a563f] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+
+          <label className="mt-5 grid gap-2 text-sm font-medium">
+            自定义追问
+            <textarea
+              rows={3}
+              value={followupQuestion}
+              onChange={(event) => setFollowupQuestion(event.target.value)}
+              className="resize-none border border-[#d9c7b2] bg-white px-3 py-3 outline-none transition focus:border-[#9a563f]"
+              placeholder="例如：我适合做副业吗？未来三个月怎么行动？"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => handleFollowup()}
+            disabled={isFollowupLoading}
+            className="mt-3 h-11 bg-[#1d1a16] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isFollowupLoading ? "正在深化生成..." : "继续深化这个问题"}
+          </button>
+
+          {followupError ? (
+            <p className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {followupError}
+            </p>
+          ) : null}
+
+          {followup ? (
+            <article className="mt-5 border border-[#e5d7c5] bg-[#fffaf2] p-4">
+              <p className="text-sm font-semibold text-[#9a563f]">{followup.statusMessage}</p>
+              <div className="mt-4 whitespace-pre-wrap text-sm leading-7">{followup.answer}</div>
+              <p className="mt-4 text-xs text-[#8a7560]">
+                深化模式：{followup.mode === "ai" ? "真实 AI 深化" : "演示深化"}。内容仅供娱乐和自我探索。
+              </p>
+            </article>
+          ) : null}
+        </section>
       </section>
     </main>
   );

@@ -15,6 +15,7 @@
 - 隐私政策：`/privacy`
 - 专业排盘升级说明：`/professional`
 - 部署清单：`/deploy`
+- 报告继续深化：`/api/report-followup`
 - 正式品牌信息：玄机命理会馆
 - 人工收款 MVP：完整版报告 19.9 元，客服微信 wuyanji
 
@@ -167,6 +168,40 @@ D:\项目文件夹\作品集\ai-mystic-site\DEPLOY_CHINA.md
 ```
 
 如果只是先演示，也可以用服务器公网 IP 临时访问；如果要绑定正式域名并长期服务中国境内客户，就必须走备案流程。
+
+## 临时公网访问
+
+如果你暂时不买服务器，也不注册部署平台，可以用临时隧道生成一个可分享网址。
+
+先启动网站：
+
+```bash
+cd D:\项目文件夹\作品集\ai-mystic-site
+npm.cmd run dev
+```
+
+再打开第二个 PowerShell 窗口，运行：
+
+```bash
+cd D:\项目文件夹\作品集\ai-mystic-site
+$env:npm_config_cache='D:\项目文件夹\作品集\ai-mystic-site\.npm-cache'
+npx.cmd localtunnel --port 3000
+```
+
+它会输出一个类似这样的地址：
+
+```text
+https://xxxx.loca.lt
+```
+
+这个地址可以发给别人临时访问，但缺点是：
+
+```text
+1. 电脑关机或命令停止后，网址就失效。
+2. 地址不固定，不适合印在名片或宣传页。
+3. 搜索引擎通常不会稳定收录这种临时网址。
+4. 正式服务中国境内客户，仍然建议走国内云服务器和备案。
+```
 
 ## 当前边界
 

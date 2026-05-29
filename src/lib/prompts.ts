@@ -68,3 +68,55 @@ export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
 输出一句适合用户截图分享的话。
 `.trim();
 }
+
+export function buildFollowupPrompt(params: {
+  question: string;
+  reportTitle: string;
+  report: string;
+  profile: MysticProfile;
+}) {
+  return `
+你是“东方命理 + 星座 + 心理自我探索”的中文追问助手。
+用户已经生成了一份命理报告，现在想继续深化一个问题。
+
+重要规则：
+- 内容仅用于娱乐、自我探索和产品演示。
+- 不要承诺发财、复合、治病、转运等确定结果。
+- 不要提供医疗、法律、投资等专业决策建议。
+- 不要制造恐惧，不要说“必定”“一定”“注定”。
+- 语气要温和、具体、可执行。
+- 如果问题涉及投资、医疗、法律、婚姻重大决策，要提醒用户咨询专业人士。
+- 输出纯文本，不要 Markdown 表格。
+
+报告标题：
+${params.reportTitle}
+
+用户基础信息：
+- 生肖：${params.profile.zodiac}
+- 星座：${params.profile.westernSign}
+- 年柱：${params.profile.yearPillar}
+- 摘要：${params.profile.birthSummary}
+
+原始报告：
+${params.report.slice(0, 5000)}
+
+用户想深化的问题：
+${params.question}
+
+请严格按以下结构输出：
+【深化结论】
+用 2-3 句话直接回答用户最关心的问题。
+
+【命盘观察角度】
+从生肖、星座、年柱或原报告里挑 2-3 个相关点解释。
+
+【现实行动建议】
+给出 5 条具体行动建议，每条必须可执行。
+
+【未来 30 天小计划】
+按第 1 周、第 2 周、第 3 周、第 4 周输出。
+
+【提醒】
+用温和语气提醒这只是娱乐和自我探索，不替代现实专业判断。
+`.trim();
+}
