@@ -135,21 +135,38 @@ POST /api/payments/create
 
 ## 部署上线
 
-建议用：
+如果服务中国境内客户，建议用：
 
 ```text
-Vercel + Supabase
+腾讯云轻量应用服务器 / 阿里云 ECS + Node.js 20 + PM2 + Nginx
 ```
 
-部署前要把 `.env.local` 里的变量复制到 Vercel 的 Environment Variables。
-
-部署后把：
+项目已准备国内服务器部署文件：
 
 ```text
-NEXT_PUBLIC_APP_URL
+DEPLOY_CHINA.md
+ecosystem.config.cjs
+Dockerfile
+netlify.toml
 ```
 
-改成你的正式域名。
+国内正式上线通常需要：
+
+```text
+域名实名
+ICP备案
+服务器部署
+HTTPS
+公安联网备案
+```
+
+详细步骤看：
+
+```text
+D:\项目文件夹\作品集\ai-mystic-site\DEPLOY_CHINA.md
+```
+
+如果只是先演示，也可以用服务器公网 IP 临时访问；如果要绑定正式域名并长期服务中国境内客户，就必须走备案流程。
 
 ## 当前边界
 

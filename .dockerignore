@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+.env*
+.npm-cache
+.vercel
+.vercel-data
+.vercel-localappdata
+.netlify
+.netlify-config
+.netlify-appdata
+npm-debug.log*
+dev-server.log
+dev-server-error.log
