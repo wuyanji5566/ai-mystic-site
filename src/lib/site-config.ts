@@ -1,0 +1,14 @@
+export const siteConfig = {
+  name: "玄机命理会馆",
+  shortName: "玄机命理",
+  contactWeChat: "wuyanji",
+  contactEmail: "18200249873@163.com",
+  githubOwner: "wuyanji5566",
+  fullReportPrice: "19.9",
+  fullReportPriceLabel: "19.9 元",
+  freeReportsPerUser: 1,
+  targetMarket: "国内与海外用户",
+  unlockCode: "MYSTIC2026",
+  wechatPayQrPath: "/payments/wechat-pay.jpg",
+  paymentMethods: ["人工微信收款", "微信支付", "支付宝"],
+};
