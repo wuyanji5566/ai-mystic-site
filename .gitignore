@@ -35,6 +35,12 @@ yarn-error.log*
 
 # vercel
 .vercel
+.vercel-data
+.vercel-localappdata
+.npm-cache
+
+# netlify
+.netlify
 
 # typescript
 *.tsbuildinfo
