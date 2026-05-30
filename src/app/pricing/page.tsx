@@ -7,13 +7,13 @@ const plans = [
     name: "免费体验版",
     price: "0 元",
     desc: `每位用户免费生成 ${siteConfig.freeReportsPerUser} 次，用来体验基础报告流程。`,
-    features: ["基础命盘概览", "星座/生肖/年柱", "报告摘要", "本地保存"],
+    features: ["基础命盘概览", "星座/生肖/年柱", "报告摘要", "免费追问 1 次"],
   },
   {
     name: "完整版报告",
     price: siteConfig.fullReportPriceLabel,
     desc: "当前主售产品，适合用来验证用户是否愿意付费。",
-    features: ["完整 11 模块报告", "未来一年行动清单", "复制报告正文", "详情页复看"],
+    features: ["四维完整报告", "未来行动清单", "继续深度追问", "详情页复看"],
   },
   {
     name: "深度咨询版",

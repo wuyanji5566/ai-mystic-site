@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { siteConfig } from "@/lib/site-config";
 import {
+  clearReportFollowups,
+  getReportFollowups,
+  saveReportFollowup,
+  type FollowupMessage,
+} from "@/lib/followup-storage";
+import {
   isReportUnlocked,
   getReportWithCloudFallback,
   unlockReport,
@@ -36,6 +42,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   const [copyMessage, setCopyMessage] = useState("");
   const [followupQuestion, setFollowupQuestion] = useState(followupPresets[0]);
   const [followup, setFollowup] = useState<FollowupResponse | null>(null);
+  const [followupHistory, setFollowupHistory] = useState<FollowupMessage[]>([]);
   const [followupError, setFollowupError] = useState("");
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
 
@@ -45,6 +52,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         setReport(result?.report || null);
         setStorageMode(result?.storage || "local");
         setIsUnlocked(result?.report ? isReportUnlocked(result.report.id) : false);
+        setFollowupHistory(result?.report ? getReportFollowups(result.report.id) : []);
         setIsLoading(false);
       });
     }, 0);
@@ -83,6 +91,13 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   async function handleFollowup(question = followupQuestion) {
     if (!report) return;
 
+    if (!isUnlocked && followupHistory.length >= 1) {
+      setFollowupError(
+        `免费追问次数已用完。完整版报告 ${siteConfig.fullReportPriceLabel} 可继续深挖，请添加客服微信 ${siteConfig.contactWeChat} 人工解锁。`,
+      );
+      return;
+    }
+
     setFollowupQuestion(question);
     setFollowupError("");
     setFollowup(null);
@@ -106,12 +121,30 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         throw new Error(errorData.error || "深化失败，请稍后再试。");
       }
 
-      setFollowup(data as FollowupResponse);
+      const followupData = data as FollowupResponse;
+      setFollowup(followupData);
+      const saved = saveReportFollowup({
+        reportId: report.id,
+        question,
+        answer: followupData.answer,
+        mode: followupData.mode,
+        statusMessage: followupData.statusMessage,
+      });
+      setFollowupHistory((items) => [...items, saved].slice(-12));
     } catch (error) {
       setFollowupError(error instanceof Error ? error.message : "深化失败，请稍后再试。");
     } finally {
       setIsFollowupLoading(false);
     }
+  }
+
+  function handleClearFollowups() {
+    if (!report) return;
+    clearReportFollowups(report.id);
+    setFollowupHistory([]);
+    setFollowup(null);
+    setFollowupError("");
+    setCopyMessage("追问历史已清空。");
   }
 
   if (isLoading) {
@@ -274,11 +307,41 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         </article>
 
         <section className="mt-6 border border-[#dfd2c1] bg-white p-5">
-          <p className="text-sm font-semibold text-[#9a563f]">四维追问室</p>
-          <h2 className="mt-2 text-2xl font-semibold">继续把报告变成行动方案</h2>
-          <p className="mt-3 text-sm leading-7 text-[#6f6254]">
-            用户生成报告后，可以继续选择一个方向深挖。系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。这一步能增加停留时间，也能引导用户购买完整版或人工咨询。
-          </p>
+          <div className="flex flex-col gap-3 border-b border-[#e5d7c5] pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#9a563f]">四维追问室</p>
+              <h2 className="mt-2 text-2xl font-semibold">像聊天一样继续深挖</h2>
+              <p className="mt-3 text-sm leading-7 text-[#6f6254]">
+                系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。免费摘要可追问 1 次，解锁后适合继续做深度咨询。
+              </p>
+            </div>
+            <div className="w-fit border border-[#dfd2c1] bg-[#fffaf2] px-3 py-2 text-xs font-semibold text-[#6f6254]">
+              已追问 {followupHistory.length} 次
+            </div>
+          </div>
+
+          {followupHistory.length ? (
+            <div className="mt-5 space-y-4">
+              {followupHistory.map((item) => (
+                <article key={item.id} className="grid gap-3">
+                  <div className="ml-auto max-w-[88%] bg-[#1d1a16] px-4 py-3 text-sm leading-7 text-[#fff8ec]">
+                    {item.question}
+                  </div>
+                  <div className="max-w-[92%] border border-[#e5d7c5] bg-[#fffaf2] px-4 py-3">
+                    <p className="text-xs font-semibold text-[#9a563f]">{item.statusMessage}</p>
+                    <div className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.answer}</div>
+                    <p className="mt-3 text-xs text-[#8a7560]">
+                      {new Date(item.createdAt).toLocaleString("zh-CN")}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 border border-[#e5d7c5] bg-[#fffaf2] px-4 py-3 text-sm text-[#6f6254]">
+              还没有追问。先从下方选择一个方向，或者输入自己的具体问题。
+            </p>
+          )}
 
           <div className="mt-4 grid gap-2 md:grid-cols-2">
             {followupPresets.map((preset) => (
@@ -312,6 +375,15 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           >
             {isFollowupLoading ? "正在深化生成..." : "继续深化这个问题"}
           </button>
+          {followupHistory.length ? (
+            <button
+              type="button"
+              onClick={handleClearFollowups}
+              className="ml-0 mt-3 h-11 border border-[#d9c7b2] bg-white px-5 text-sm font-semibold transition hover:border-[#9a563f] sm:ml-2"
+            >
+              清空追问历史
+            </button>
+          ) : null}
 
           {followupError ? (
             <p className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
