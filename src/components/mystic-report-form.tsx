@@ -129,7 +129,6 @@ export function MysticReportForm() {
       setSavedReport(saved.report);
       setStorageMode(saved.storage);
       setFreeUsedCount(markFreeReportGenerated().count);
-      setShowPayment(true);
       window.setTimeout(() => {
         reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
@@ -159,11 +158,6 @@ export function MysticReportForm() {
     );
     setCopyMessage("免费摘要已复制。完整版内容需要解锁后查看。");
   }
-
-  const statusClass =
-    report?.mode === "ai"
-      ? "border-[#2f9c89]/35 bg-[#13302b] text-[#aef2dd]"
-      : "border-[#d7aa55]/35 bg-[#342817] text-[#f4d795]";
 
   return (
     <section
@@ -377,7 +371,7 @@ export function MysticReportForm() {
 
       {isLoading ? (
         <p className="mt-4 border border-[#d7aa55]/20 bg-[#171f1b] px-4 py-3 text-sm leading-6 text-[#d8cdb9]">
-          已提交信息，玄机 AI 正在生成报告。第一次调用可能需要几秒钟。
+          已提交信息，正在生成报告。内容较长时可能需要 10-30 秒，请不要重复点击。
         </p>
       ) : null}
 
@@ -402,10 +396,6 @@ export function MysticReportForm() {
               {report.mode === "ai" ? "玄机 AI" : "演示回退"}
             </span>
           </div>
-
-          <p className={`mb-4 border px-4 py-3 text-sm font-bold ${statusClass}`}>
-            {report.statusMessage}
-          </p>
 
           <p className="mb-4 border border-[#121714]/10 bg-white px-4 py-3 text-sm text-[#52615b]">
             保存位置：{storageMode === "cloud" ? "Supabase 云端，可跨设备分享" : "浏览器本地，仅当前设备可复看"}

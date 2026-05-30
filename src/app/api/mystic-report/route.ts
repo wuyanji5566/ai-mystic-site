@@ -71,6 +71,7 @@ export async function POST(request: Request) {
           },
         ],
         temperature: 0.7,
+        max_tokens: 2200,
       });
 
       const report = completion.choices[0]?.message?.content?.trim();
