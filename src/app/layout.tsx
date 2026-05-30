@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} | DeepSeek 命理报告`,
-  description: "基于 DeepSeek 的 AI 玄学报告生成网站，支持报告保存、复看和商业化 MVP。",
+  title: `${siteConfig.name} | 紫微八字星座 MBTI 四维分析`,
+  description: "融合紫微斗数、生辰八字、西方星座和 MBTI 的 AI 自我理解报告，支持继续追问和深度互动。",
 };
 
 export default function RootLayout({

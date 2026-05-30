@@ -42,7 +42,7 @@ export function saveMysticReport(report: Omit<SavedMysticReport, "id" | "created
   const savedReport: SavedMysticReport = {
     ...report,
     id,
-    title: `${report.input.name || "匿名用户"}的 AI 命理报告`,
+    title: `${report.input.name || "匿名用户"}的四维融合分析报告`,
     createdAt: new Date().toISOString(),
   };
 

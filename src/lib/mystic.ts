@@ -5,6 +5,8 @@ export type MysticInput = {
   birthTime: string;
   birthPlace: string;
   calendarType: "solar" | "lunar";
+  mbtiType: string;
+  mbtiCertainty: "known" | "estimated" | "unknown";
   focus: string;
 };
 
@@ -54,7 +56,8 @@ export function buildMysticProfile(input: MysticInput): MysticProfile {
   const westernSign = getWesternSign(month, day);
 
   const calendarLabel = input.calendarType === "solar" ? "公历" : "农历";
-  const birthSummary = `${input.name}，${input.gender}，${calendarLabel} ${input.birthDate} ${input.birthTime} 出生于 ${input.birthPlace}。当前 MVP 使用公历生日识别星座，并用年份生成基础生肖与年柱信息。`;
+  const mbtiLabel = input.mbtiType === "不确定" ? "MBTI 暂不确定" : `MBTI 倾向为 ${input.mbtiType}`;
+  const birthSummary = `${input.name}，${input.gender}，${calendarLabel} ${input.birthDate} ${input.birthTime} 出生于 ${input.birthPlace}。当前 MVP 使用公历生日识别星座，并用年份生成基础生肖与年柱信息；${mbtiLabel}。`;
 
   return {
     zodiac,
@@ -73,7 +76,7 @@ export function buildDemoReport(input: MysticInput, profile: MysticProfile) {
     `${input.name} 的基础资料显示：星座为 ${profile.westernSign}，生肖为 ${profile.zodiac}，八字年柱为 ${profile.yearPillar}。这些信息可以作为入门观察维度，用来组织一份更有结构的自我探索报告。`,
     "",
     "2. 核心性格关键词",
-    "你的关键词可以概括为：稳定感、判断力、慢热积累、重视实际反馈。你适合把复杂目标拆成一个个可完成的小步骤，而不是一次性追求完美答案。",
+    `你的关键词可以概括为：稳定感、判断力、慢热积累、重视实际反馈。MBTI 维度显示为“${input.mbtiType}”，适合把它当作沟通偏好和决策风格的参考，而不是固定标签。`,
     "",
     "3. 生辰八字入门解读",
     `${profile.yearPillar} 年柱偏向“先建立根基，再逐步发力”的节奏。对你来说，真正有价值的不是短期灵感，而是长期可复用的能力、作品和资源。`,
@@ -84,25 +87,28 @@ export function buildDemoReport(input: MysticInput, profile: MysticProfile) {
     "5. 星座能量分析",
     `${profile.westernSign} 的能量更重视安全感、节奏感和可确认的结果。你不一定适合频繁换方向，但很适合在一个方向上慢慢做深，形成个人标签。`,
     "",
-    "6. 事业方向建议",
+    "6. MBTI 行为模式融合",
+    `如果以 ${input.mbtiType} 作为参考，你更需要关注“我如何获取能量、如何做决定、如何处理压力”。当 MBTI 和命盘信息出现冲突时，优先以真实生活反馈为准。`,
+    "",
+    "7. 事业方向建议",
     `围绕你关注的“${input.focus}”，建议优先选择能沉淀案例的方向。比如：固定每周完成一个可展示作品、一个客户案例、一个内容选题或一个自动化流程。`,
     "",
-    "7. 感情与人际关系",
+    "8. 感情与人际关系",
     "你在人际关系中需要清晰表达需求。不要只期待别人理解你的暗示，重要关系里更适合提前说清楚边界、节奏和真实想法。",
     "",
-    "8. 财富与消费模式",
+    "9. 财富与消费模式",
     "第一阶段不要追求复杂投资或高风险机会。更适合把钱花在能提高生产力的地方，例如学习、工具、作品包装、获客渠道和可复用资产。",
     "",
-    "9. 未来一年行动清单",
+    "10. 未来一年行动清单",
     "第 1-3 个月：确定一个主方向，减少频繁切换。",
     "第 4-6 个月：每月至少沉淀 2 个可展示案例。",
     "第 7-9 个月：开始整理服务报价、作品集和客户沟通话术。",
     "第 10-12 个月：测试付费产品、咨询服务或自动化工具交付。",
     "",
-    "10. 适合你的提醒",
+    "11. 适合你的提醒",
     "你不需要等到所有条件完美才开始。你的好运更像是被行动激活的：先做出一个小成果，再用反馈修正方向。",
     "",
-    "11. 一句话总结",
+    "12. 一句话总结",
     "先稳定输出，再放大优势；先做出案例，再谈变现。",
   ].join("\n");
 }

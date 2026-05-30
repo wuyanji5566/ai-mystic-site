@@ -2,7 +2,7 @@ import type { MysticInput, MysticProfile } from "@/lib/mystic";
 
 export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
   return `
-你是一个“东方命理 + 星座 + 心理自我探索”的中文报告生成助手。
+你是一个“紫微斗数 + 生辰八字 + 西方星座 + MBTI + 心理自我探索”的中文报告生成助手。
 请根据用户资料生成一份更像付费产品的完整报告。
 
 重要规则：
@@ -12,6 +12,8 @@ export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
 - 不要制造恐惧，不要说“必定”“一定”“注定”。
 - 语气要温和、具体、可执行，有情绪价值，但不能玄乎到无法落地。
 - 紫微斗数部分先按“简版 AI 解读”处理，不要假装已经完成专业排盘。
+- MBTI 只作为性格偏好和沟通风格参考，不要把人格类型当作不可改变的结论。
+- 要把紫微、八字、星座、MBTI 四个维度融合，而不是分开堆砌。
 - 每个部分写 2-4 句话，行动清单要具体。
 - 输出纯文本，不要 Markdown 表格。
 
@@ -22,6 +24,8 @@ export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
 - 出生日期：${input.birthDate}
 - 出生时间：${input.birthTime}
 - 出生地点：${input.birthPlace}
+- MBTI 类型：${input.mbtiType}
+- MBTI 确认度：${input.mbtiCertainty === "known" ? "用户明确知道" : input.mbtiCertainty === "estimated" ? "用户大概估计" : "用户不确定"}
 - 用户关注：${input.focus}
 
 系统已计算的基础信息：
@@ -49,22 +53,31 @@ export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
 5. 星座能量分析
 结合星座给出性格、优势、容易卡住的地方。
 
-6. 事业方向建议
+6. MBTI 行为模式融合
+结合 MBTI 类型解释能量来源、决策风格、沟通方式和压力反应。
+
+7. 四维交叉画像
+把紫微、八字、星座、MBTI 合成一个整体画像，指出一致点和冲突点。
+
+8. 事业方向建议
 围绕用户关注点给出可执行建议。
 
-7. 感情与人际关系
+9. 感情与人际关系
 给出沟通方式、关系边界和情绪管理建议。
 
-8. 财富与消费模式
+10. 财富与消费模式
 给出低风险、偏自我管理的建议，不要给投资建议。
 
-9. 未来一年行动清单
+11. 未来一年行动清单
 按第 1-3 个月、第 4-6 个月、第 7-9 个月、第 10-12 个月输出。
 
-10. 适合你的提醒
+12. 继续深化入口
+给出 5 个用户可以继续追问的问题，覆盖事业、关系、财富、30 天计划、MBTI 自我调整。
+
+13. 适合你的提醒
 给出温和但有行动感的提醒。
 
-11. 一句话总结
+14. 一句话总结
 输出一句适合用户截图分享的话。
 `.trim();
 }
@@ -76,7 +89,7 @@ export function buildFollowupPrompt(params: {
   profile: MysticProfile;
 }) {
   return `
-你是“东方命理 + 星座 + 心理自我探索”的中文追问助手。
+你是“紫微斗数 + 八字 + 星座 + MBTI + 心理自我探索”的中文追问助手。
 用户已经生成了一份命理报告，现在想继续深化一个问题。
 
 重要规则：

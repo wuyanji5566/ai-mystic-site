@@ -55,7 +55,7 @@ function toSavedReport(row: SupabaseReportRow): SavedMysticReport {
 export async function createCloudReport(
   report: Omit<SavedMysticReport, "id" | "createdAt" | "title">,
 ) {
-  const title = `${report.input.name || "匿名用户"}的 AI 命理报告`;
+  const title = `${report.input.name || "匿名用户"}的四维融合分析报告`;
 
   const response = await fetch(getRestUrl("mystic_reports"), {
     method: "POST",

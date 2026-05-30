@@ -9,6 +9,8 @@ const reportSchema = z.object({
     birthTime: z.string(),
     birthPlace: z.string(),
     calendarType: z.enum(["solar", "lunar"]),
+    mbtiType: z.string().default("不确定"),
+    mbtiCertainty: z.enum(["known", "estimated", "unknown"]).default("unknown"),
     focus: z.string(),
   }),
   profile: z.object({

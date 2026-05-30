@@ -19,11 +19,12 @@ type FollowupResponse = {
 };
 
 const followupPresets = [
-  "帮我深挖事业方向，给我适合的职业路径和避坑提醒",
-  "帮我深挖感情关系，分析适合的沟通方式和关系边界",
-  "帮我深挖财富模式，给我低风险的赚钱和消费建议",
-  "帮我做未来 30 天行动计划，每周要做什么",
-  "帮我把这份报告整理成适合发朋友圈的简短总结",
+  "把紫微、八字、星座和 MBTI 合起来，帮我提炼我的核心人格画像",
+  "帮我深挖事业方向：我适合稳定积累、表达影响力，还是项目型机会？",
+  "帮我深挖亲密关系：我的沟通模式、关系边界和情绪触发点是什么？",
+  "帮我深挖财富模式：从性格和命盘倾向看，我该如何管理消费和副业？",
+  "帮我做未来 30 天行动计划，每周给我一个可执行任务",
+  "帮我把这份报告整理成适合截图分享的高级总结",
 ];
 
 export function ReportDetail({ reportId }: { reportId: string }) {
@@ -147,7 +148,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#f1c66d]">
-              AI Mystic Report
+              Four-Lens Self Report
             </p>
             <h1 className="mt-3 text-4xl font-semibold">{report.title}</h1>
             <p className="mt-3 text-sm text-[#ddccb5]">
@@ -241,7 +242,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         ) : null}
 
         <article className="border border-[#dfd2c1] bg-[#fffaf2] p-5">
-          <div className="grid gap-3 border-b border-[#e5d7c5] pb-4 text-sm sm:grid-cols-3">
+          <div className="grid gap-3 border-b border-[#e5d7c5] pb-4 text-sm sm:grid-cols-4">
             <p>
               <span className="block text-[#8a7560]">生肖</span>
               <strong>{report.profile.zodiac}</strong>
@@ -253,6 +254,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             <p>
               <span className="block text-[#8a7560]">年柱</span>
               <strong>{report.profile.yearPillar}</strong>
+            </p>
+            <p>
+              <span className="block text-[#8a7560]">MBTI</span>
+              <strong>{report.input.mbtiType || "不确定"}</strong>
             </p>
           </div>
 
@@ -269,10 +274,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         </article>
 
         <section className="mt-6 border border-[#dfd2c1] bg-white p-5">
-          <p className="text-sm font-semibold text-[#9a563f]">继续深化</p>
-          <h2 className="mt-2 text-2xl font-semibold">看完报告后继续追问</h2>
+          <p className="text-sm font-semibold text-[#9a563f]">四维追问室</p>
+          <h2 className="mt-2 text-2xl font-semibold">继续把报告变成行动方案</h2>
           <p className="mt-3 text-sm leading-7 text-[#6f6254]">
-            用户生成报告后，可以继续选择一个方向深挖，网站会结合原报告再次生成具体行动建议。这一步能增加停留时间，也能引导用户购买完整版或人工咨询。
+            用户生成报告后，可以继续选择一个方向深挖。系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。这一步能增加停留时间，也能引导用户购买完整版或人工咨询。
           </p>
 
           <div className="mt-4 grid gap-2 md:grid-cols-2">

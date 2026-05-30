@@ -2,62 +2,26 @@ import Link from "next/link";
 import { MysticReportForm } from "@/components/mystic-report-form";
 import { siteConfig } from "@/lib/site-config";
 
-const featurePillars = [
-  {
-    title: "生辰八字",
-    desc: "用出生年月日时生成基础四柱观察，适合作为 MVP 的入门解读。",
-  },
-  {
-    title: "紫微斗数",
-    desc: "先用 AI 做命盘倾向解读，后续可升级为完整宫位排盘算法。",
-  },
-  {
-    title: "星座与年度节奏",
-    desc: "自动识别西方星座，并结合关注方向输出行动建议。",
-  },
+const dimensions = [
+  ["紫微斗数", "观察人生课题、关系位置与长期节奏。"],
+  ["生辰八字", "用出生时间建立基础五行与年柱视角。"],
+  ["西方星座", "补充性格能量、表达方式与情绪节律。"],
+  ["MBTI", "理解决策风格、压力反应和沟通偏好。"],
 ];
 
-const productStats = [
-  ["AI 引擎", "DeepSeek"],
-  ["报告链路", "生成 / 保存 / 复看"],
-  ["上线阶段", "MVP 商业验证"],
+const interactionFlow = [
+  ["01", "生成画像", "输入出生信息与 MBTI，得到四维融合报告。"],
+  ["02", "继续追问", "围绕事业、关系、财富、30 天计划继续深化。"],
+  ["03", "转化服务", "免费摘要后引导完整版报告和人工咨询。"],
 ];
 
-const roadmap = [
-  {
-    step: "01",
-    title: "真实 AI",
-    desc: "已接入 DeepSeek 兼容接口，失败时自动回退演示报告。",
-  },
-  {
-    step: "02",
-    title: "报告资产",
-    desc: "支持详情页、历史页和复制，方便演示与交付客户。",
-  },
-  {
-    step: "03",
-    title: "商业闭环",
-    desc: "价格页、演示解锁和上线清单已具备，下一步接真实支付。",
-  },
-];
-
-const interactiveLoops = [
-  {
-    title: "报告追问",
-    desc: "生成报告后继续问事业、感情、财富、年度计划等具体问题。",
-  },
-  {
-    title: "30 天计划",
-    desc: "把玄学报告转成每周可执行的小计划，适合提高复访率。",
-  },
-  {
-    title: "截图分享",
-    desc: "把一句话总结和行动建议整理成更适合分享的表达。",
-  },
-  {
-    title: "人工咨询承接",
-    desc: "用户看完 AI 深化后，可通过微信付款进入人工服务。",
-  },
+const deepQuestions = [
+  "我适合什么事业定位？",
+  "我在亲密关系里最容易卡在哪里？",
+  "我如何调整财富和消费模式？",
+  "未来 30 天我应该先做什么？",
+  "我的 MBTI 和命盘冲突时该听谁？",
+  "怎么把报告变成可执行计划？",
 ];
 
 const links = [
@@ -71,15 +35,15 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#0f1412] text-[#f5efe2]">
       <section className="relative border-b border-[#d7aa55]/20">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,76,67,0.56),transparent_34%),linear-gradient(25deg,transparent_56%,rgba(122,28,38,0.28)),linear-gradient(180deg,rgba(15,20,18,0.18),#0f1412_88%)]" />
-        <div className="absolute inset-x-0 top-0 h-px bg-[#d7aa55]/60" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(37,95,85,0.38),transparent_36%),linear-gradient(70deg,transparent_48%,rgba(136,35,50,0.24)_72%),linear-gradient(180deg,rgba(15,20,18,0.1),#0f1412_86%)]" />
+        <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(90deg,rgba(215,170,85,0.13)_1px,transparent_1px),linear-gradient(180deg,rgba(215,170,85,0.08)_1px,transparent_1px)] [background-size:56px_56px]" />
 
-        <div className="relative mx-auto grid min-h-screen max-w-7xl gap-10 px-5 py-6 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:px-10">
+        <div className="relative mx-auto grid min-h-screen max-w-7xl gap-10 px-5 py-6 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-10">
           <div className="flex flex-col justify-between gap-10 py-4">
             <nav className="flex flex-col gap-4 border-b border-[#f5efe2]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
-              <Link href="/" className="group w-fit">
+              <Link href="/" className="w-fit">
                 <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#d7aa55]">
-                  AI Mystic Studio
+                  Four-Lens Self Lab
                 </p>
                 <p className="mt-2 font-[family-name:var(--font-display)] text-2xl text-[#f8f0df]">
                   {siteConfig.name}
@@ -101,54 +65,52 @@ export default function Home() {
 
             <div className="max-w-2xl">
               <div className="mb-7 inline-flex border border-[#d7aa55]/35 bg-[#111c19]/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#d7aa55]">
-                DeepSeek Powered MVP
+                Zi Wei · Ba Zi · Astrology · MBTI
               </div>
-              <h1 className="font-[family-name:var(--font-display)] text-5xl leading-[1.04] text-[#fbf3e4] sm:text-6xl lg:text-7xl">
-                把玄学咨询做成可收款的 AI 报告产品
+              <h1 className="font-[family-name:var(--font-display)] text-5xl leading-[1.03] text-[#fbf3e4] sm:text-6xl lg:text-7xl">
+                用四种系统，看见更完整的自己
               </h1>
               <p className="mt-6 max-w-xl text-base leading-8 text-[#d8cdb9] sm:text-lg">
-                用户填写出生信息后，系统生成八字、紫微、星座融合报告。每位用户免费体验 {siteConfig.freeReportsPerUser} 次，完整版报告 {siteConfig.fullReportPriceLabel}，先用人工微信收款跑通商业验证。
+                把紫微、八字、星座和 MBTI 融合成一份可追问、可复看、可转化的自我理解报告。用户不只是“测一测”，还能继续深挖自己的事业、关系、财富和行动节奏。
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 <a
                   href="#report-form"
                   className="inline-flex h-12 items-center justify-center bg-[#d7aa55] px-6 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c]"
                 >
-                  生成第一份报告
+                  开始四维分析
                 </a>
                 <Link
                   href="/pricing"
                   className="inline-flex h-12 items-center justify-center border border-[#f5efe2]/18 px-6 text-sm font-bold text-[#f5efe2] transition hover:border-[#d7aa55] hover:text-[#d7aa55]"
                 >
-                  查看商业化方案
+                  查看完整版报告
                 </Link>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {productStats.map(([label, value]) => (
-                <div key={label} className="border border-[#f5efe2]/12 bg-[#0f1412]/62 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d7aa55]">
-                    {label}
-                  </p>
-                  <p className="mt-3 text-lg font-semibold text-[#fff8ec]">{value}</p>
-                </div>
+            <div className="grid gap-3 sm:grid-cols-4">
+              {dimensions.map(([title, desc]) => (
+                <article key={title} className="border border-[#f5efe2]/12 bg-[#0f1412]/62 p-4">
+                  <p className="text-sm font-bold text-[#fff8ec]">{title}</p>
+                  <p className="mt-2 text-xs leading-5 text-[#c7baa6]">{desc}</p>
+                </article>
               ))}
             </div>
           </div>
 
           <div className="grid content-center gap-6 py-4">
-            <div className="relative hidden min-h-[220px] border border-[#d7aa55]/22 bg-[#0b100e]/55 p-6 lg:block">
-              <div className="absolute left-8 top-8 h-36 w-36 rounded-full border border-[#d7aa55]/45" />
-              <div className="absolute left-14 top-14 h-24 w-24 rounded-full border border-[#2f9c89]/60" />
-              <div className="absolute left-[104px] top-[104px] h-2 w-2 rounded-full bg-[#d7aa55]" />
-              <div className="ml-52 max-w-sm">
+            <div className="relative hidden min-h-[260px] border border-[#d7aa55]/22 bg-[#0b100e]/60 p-6 lg:block">
+              <div className="absolute left-8 top-8 h-44 w-44 rounded-full border border-[#d7aa55]/35" />
+              <div className="absolute left-14 top-14 h-32 w-32 rounded-full border border-[#2f9c89]/45" />
+              <div className="absolute left-[6.4rem] top-[6.4rem] h-8 w-8 rotate-45 border border-[#d7aa55]/70" />
+              <div className="ml-60 max-w-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2f9c89]">
-                  Product Signal
+                  Self Insight Engine
                 </p>
                 <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl text-[#fff8ec]">
-                  不是玩具页面，而是能演示、能交付、能收款验证的 MVP。
+                  从命盘、性格、关系和行动四条线，生成可继续对话的个人画像。
                 </h2>
               </div>
             </div>
@@ -157,36 +119,25 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-5 px-5 py-14 sm:px-8 md:grid-cols-3 lg:px-10">
-        {featurePillars.map((item) => (
-          <article key={item.title} className="border border-[#d7aa55]/18 bg-[#141b18] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d7aa55]">
-              Core Module
-            </p>
-            <h2 className="mt-5 font-[family-name:var(--font-display)] text-3xl text-[#fff8ec]">
-              {item.title}
-            </h2>
-            <p className="mt-4 text-sm leading-7 text-[#d8cdb9]">{item.desc}</p>
-          </article>
-        ))}
-      </section>
-
       <section className="border-y border-[#d7aa55]/18 bg-[#f5efe2] text-[#121714]">
-        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:px-10">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.7fr_1.3fr] lg:px-10">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8b2732]">
-              Next Product Loop
+              Product Loop
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight">
-              下一步重点不是继续堆页面，而是补齐账号、数据库、部署和真实收款资料。
+              让用户从一次测试，进入连续探索。
             </h2>
+            <p className="mt-4 text-sm leading-7 text-[#52615b]">
+              这类产品的核心不是“算完就走”，而是每次报告都能继续追问，逐步沉淀用户的自我画像和付费需求。
+            </p>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
-            {roadmap.map((item) => (
-              <article key={item.step} className="border border-[#121714]/12 bg-white p-5">
-                <p className="text-sm font-bold text-[#8b2732]">{item.step}</p>
-                <h3 className="mt-5 text-xl font-bold">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#52615b]">{item.desc}</p>
+            {interactionFlow.map(([step, title, desc]) => (
+              <article key={step} className="border border-[#121714]/12 bg-white p-5">
+                <p className="text-sm font-bold text-[#8b2732]">{step}</p>
+                <h3 className="mt-5 text-xl font-bold">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#52615b]">{desc}</p>
               </article>
             ))}
           </div>
@@ -194,26 +145,23 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
-        <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
-              Interactive Service
+              Deep Interaction
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
-              不止生成一次报告，还能继续深化和转化。
+              报告之后，继续问真正关心的问题。
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#d8cdb9]">
-              用户看完报告后，可以继续追问。这个环节能增加停留时间，也能自然引导到 {siteConfig.fullReportPriceLabel} 完整版和人工咨询。
+              详情页已经加入继续深化模块，用户可以围绕具体困惑继续生成行动建议。这也是后续做会员、咨询、复购的入口。
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {interactiveLoops.map((item) => (
-              <article key={item.title} className="border border-[#d7aa55]/18 bg-[#141b18] p-5">
-                <h3 className="font-[family-name:var(--font-display)] text-2xl text-[#fff8ec]">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-[#d8cdb9]">{item.desc}</p>
-              </article>
+            {deepQuestions.map((question) => (
+              <div key={question} className="border border-[#d7aa55]/18 bg-[#141b18] p-5">
+                <p className="text-sm font-semibold leading-7 text-[#fff8ec]">{question}</p>
+              </div>
             ))}
           </div>
         </div>

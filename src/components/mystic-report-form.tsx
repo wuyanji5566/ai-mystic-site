@@ -33,10 +33,32 @@ const initialForm: MysticInput = {
   birthTime: "",
   birthPlace: "",
   calendarType: "solar",
+  mbtiType: "不确定",
+  mbtiCertainty: "unknown",
   focus: "事业方向和未来一年建议",
 };
 
-const focusPresets = ["事业方向", "感情关系", "财运机会", "年度规划"];
+const focusPresets = ["事业方向", "亲密关系", "财富习惯", "人生定位", "MBTI 调整"];
+
+const mbtiTypes = [
+  "不确定",
+  "INTJ",
+  "INTP",
+  "ENTJ",
+  "ENTP",
+  "INFJ",
+  "INFP",
+  "ENFJ",
+  "ENFP",
+  "ISTJ",
+  "ISFJ",
+  "ESTJ",
+  "ESFJ",
+  "ISTP",
+  "ISFP",
+  "ESTP",
+  "ESFP",
+];
 
 const inputClass =
   "h-12 border border-[#d7aa55]/26 bg-[#0f1412] px-4 text-[#fff8ec] outline-none transition placeholder:text-[#8b948d] focus:border-[#d7aa55] focus:bg-[#121a17]";
@@ -144,13 +166,13 @@ export function MysticReportForm() {
       <div className="flex flex-col gap-4 border-b border-[#f5efe2]/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7aa55]">
-            Report Console
+            Self Insight Console
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl text-[#fff8ec]">
-            输入出生信息
+            构建你的多维画像
           </h2>
           <p className="mt-3 max-w-lg text-sm leading-7 text-[#cfc2ae]">
-            当前 AI 供应商为 DeepSeek。每位用户免费体验 {siteConfig.freeReportsPerUser} 次，完整版报告 {siteConfig.fullReportPriceLabel}，先通过客服微信人工收款。
+            输入出生信息与 MBTI 倾向，系统会融合紫微、八字、星座、MBTI 四个维度，生成可继续追问的自我理解报告。
           </p>
         </div>
         <Link
@@ -172,9 +194,9 @@ export function MysticReportForm() {
         </p>
         <p>
           <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-            Full Report
+            Analysis Stack
           </span>
-          <strong className="mt-2 block text-[#fff8ec]">{siteConfig.fullReportPriceLabel}</strong>
+          <strong className="mt-2 block text-[#fff8ec]">紫微 / 八字 / 星座 / MBTI</strong>
         </p>
         <p>
           <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
@@ -249,16 +271,68 @@ export function MysticReportForm() {
           </label>
         </div>
 
-        <label className={labelClass}>
-          出生地点
-          <input
-            required
-            value={form.birthPlace}
-            onChange={(event) => setForm({ ...form, birthPlace: event.target.value })}
-            className={inputClass}
-            placeholder="例如：杭州"
-          />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-[1fr_0.9fr]">
+          <label className={labelClass}>
+            出生地点
+            <input
+              required
+              value={form.birthPlace}
+              onChange={(event) => setForm({ ...form, birthPlace: event.target.value })}
+              className={inputClass}
+              placeholder="例如：杭州"
+            />
+          </label>
+
+          <label className={labelClass}>
+            MBTI 类型
+            <select
+              value={form.mbtiType}
+              onChange={(event) => {
+                const mbtiType = event.target.value;
+                setForm({
+                  ...form,
+                  mbtiType,
+                  mbtiCertainty: mbtiType === "不确定" ? "unknown" : form.mbtiCertainty === "unknown" ? "estimated" : form.mbtiCertainty,
+                });
+              }}
+              className={inputClass}
+            >
+              {mbtiTypes.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="grid gap-2">
+          <span className="text-sm font-semibold text-[#f1e6d2]">MBTI 确认度</span>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              ["known", "做过测试，很确定"],
+              ["estimated", "大概判断，不完全确定"],
+              ["unknown", "不确定，交给 AI 推断"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    mbtiCertainty: value as MysticInput["mbtiCertainty"],
+                    mbtiType: value === "unknown" ? "不确定" : form.mbtiType,
+                  })
+                }
+                className={`border px-3 py-3 text-left text-xs font-semibold leading-5 transition ${
+                  form.mbtiCertainty === value
+                    ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
+                    : "border-[#f5efe2]/12 text-[#cfc2ae] hover:border-[#2f9c89] hover:text-[#aef2dd]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <label className={labelClass}>
           你最想看的方向
@@ -268,6 +342,7 @@ export function MysticReportForm() {
             value={form.focus}
             onChange={(event) => setForm({ ...form, focus: event.target.value })}
             className="resize-none border border-[#d7aa55]/26 bg-[#0f1412] px-4 py-3 text-[#fff8ec] outline-none transition placeholder:text-[#8b948d] focus:border-[#d7aa55] focus:bg-[#121a17]"
+            placeholder="例如：我想知道事业定位、感情模式、财富习惯，以及未来 30 天怎么调整。"
           />
         </label>
 
@@ -276,7 +351,7 @@ export function MysticReportForm() {
             <button
               key={preset}
               type="button"
-              onClick={() => setForm({ ...form, focus: `${preset}和未来一年建议` })}
+              onClick={() => setForm({ ...form, focus: `${preset}与未来 30 天行动建议` })}
               className="border border-[#f5efe2]/12 px-3 py-2 text-xs font-semibold text-[#cfc2ae] transition hover:border-[#2f9c89] hover:text-[#aef2dd]"
             >
               {preset}
@@ -289,7 +364,7 @@ export function MysticReportForm() {
           disabled={isLoading}
           className="mt-1 h-13 bg-[#d7aa55] px-5 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? "正在生成并保存报告，请稍等..." : "生成 AI 命理报告"}
+          {isLoading ? "正在生成并保存报告，请稍等..." : "生成四维融合分析报告"}
         </button>
       </form>
 
@@ -313,7 +388,7 @@ export function MysticReportForm() {
                 Result
               </p>
               <h3 className="mt-2 font-[family-name:var(--font-display)] text-3xl">
-                你的 AI 命理报告已生成并保存
+                你的四维融合报告已生成并保存
               </h3>
             </div>
             <span className="w-fit border border-[#121714]/15 px-3 py-1 text-xs font-bold">
@@ -361,7 +436,7 @@ export function MysticReportForm() {
             </p>
           ) : null}
 
-          <div className="grid gap-3 border-y border-[#121714]/10 py-4 text-sm sm:grid-cols-3">
+          <div className="grid gap-3 border-y border-[#121714]/10 py-4 text-sm sm:grid-cols-4">
             <p>
               <span className="block text-[#69756f]">生肖</span>
               <strong>{report.profile.zodiac}</strong>
@@ -373,6 +448,10 @@ export function MysticReportForm() {
             <p>
               <span className="block text-[#69756f]">年柱</span>
               <strong>{report.profile.yearPillar}</strong>
+            </p>
+            <p>
+              <span className="block text-[#69756f]">MBTI</span>
+              <strong>{form.mbtiType}</strong>
             </p>
           </div>
           <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
