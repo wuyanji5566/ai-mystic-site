@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { siteConfig } from "@/lib/site-config";
 import {
   clearReportFollowups,
@@ -45,6 +45,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   const [followupHistory, setFollowupHistory] = useState<FollowupMessage[]>([]);
   const [followupError, setFollowupError] = useState("");
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -71,8 +72,11 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
   async function copyText() {
     if (!report) return;
-    await navigator.clipboard.writeText(report.report);
-    setCopyMessage("报告正文已复制。");
+    const visibleText = isUnlocked
+      ? report.report
+      : `${report.report.split("\n").slice(0, 8).join("\n")}\n\n【完整版内容已隐藏】\n解锁后可查看完整深度分析、继续追问和行动计划。`;
+    await navigator.clipboard.writeText(visibleText);
+    setCopyMessage(isUnlocked ? "报告正文已复制。" : "免费摘要已复制。完整版内容需要解锁后查看。");
   }
 
   function handleUnlock() {
@@ -82,6 +86,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
       unlockReport(report.id);
       setIsUnlocked(true);
       setCopyMessage("完整版已解锁。真实上线后这里会升级为微信支付或支付宝自动回调。");
+      setShowPayment(false);
       return;
     }
 
@@ -91,10 +96,11 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   async function handleFollowup(question = followupQuestion) {
     if (!report) return;
 
-    if (!isUnlocked && followupHistory.length >= 1) {
+    if (!isUnlocked) {
       setFollowupError(
-        `免费追问次数已用完。完整版报告 ${siteConfig.fullReportPriceLabel} 可继续深挖，请添加客服微信 ${siteConfig.contactWeChat} 人工解锁。`,
+        `继续深度解析需要解锁完整版报告，价格 ${siteConfig.fullReportPriceLabel}。`,
       );
+      setShowPayment(true);
       return;
     }
 
@@ -233,43 +239,19 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
         {!isUnlocked ? (
           <section className="mb-5 border border-[#dfd2c1] bg-white p-5">
-            <p className="text-sm font-semibold text-[#9a563f]">付费解锁演示</p>
+            <p className="text-sm font-semibold text-[#9a563f]">解锁深度解析</p>
             <h2 className="mt-2 text-2xl font-semibold">当前只展示免费摘要</h2>
             <p className="mt-3 text-sm leading-7 text-[#6f6254]">
               完整版报告价格为 <strong className="text-[#1d1a16]">{siteConfig.fullReportPriceLabel}</strong>。
-              当前先使用人工微信收款：添加客服微信 <strong className="text-[#1d1a16]">{siteConfig.contactWeChat}</strong>，
-              付款后发送报告链接，由客服协助解锁。
+              支付后可查看完整分析、继续追问和未来行动计划。
             </p>
-            <div className="mt-4 grid gap-4 lg:grid-cols-[240px_1fr]">
-              <div className="border border-[#e5d7c5] bg-[#fffaf2] p-3">
-                <Image
-                  src={siteConfig.wechatPayQrPath}
-                  alt={`${siteConfig.name} 微信收款码`}
-                  width={320}
-                  height={436}
-                  className="mx-auto h-auto w-full max-w-[210px]"
-                />
-              </div>
-              <div>
-                <p className="text-sm leading-7 text-[#6f6254]">
-                  人工收款步骤：扫码付款 {siteConfig.fullReportPriceLabel}，把付款截图和当前报告链接发送给客服微信 {siteConfig.contactWeChat}。
-                </p>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <input
-                    value={unlockCode}
-                    onChange={(event) => setUnlockCode(event.target.value)}
-                    className="h-10 border border-[#d9c7b2] bg-white px-3 outline-none transition focus:border-[#9a563f]"
-                    placeholder="输入解锁码"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleUnlock}
-                    className="h-10 bg-[#1d1a16] px-4 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
-                  >
-                    解锁完整版
-                  </button>
-                </div>
-              </div>
+            <div className="mt-4">
+              <PaymentUnlockPanel
+                compact
+                unlockCode={unlockCode}
+                onUnlockCodeChange={setUnlockCode}
+                onUnlock={handleUnlock}
+              />
             </div>
           </section>
         ) : null}
@@ -302,7 +284,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
                 "\n\n【完整版内容已隐藏】\n解锁后可查看事业、感情、财富、未来一年行动清单和完整总结。"}
           </div>
           <p className="mt-6 text-xs text-[#8a7560]">
-            当前模式：{report.mode === "ai" ? "真实 AI 生成" : "演示报告"}。内容仅供娱乐和自我探索。
+            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"}。内容仅供娱乐和自我探索。
           </p>
         </article>
 
@@ -312,7 +294,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
               <p className="text-sm font-semibold text-[#9a563f]">四维追问室</p>
               <h2 className="mt-2 text-2xl font-semibold">像聊天一样继续深挖</h2>
               <p className="mt-3 text-sm leading-7 text-[#6f6254]">
-                系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。免费摘要可追问 1 次，解锁后适合继续做深度咨询。
+                系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。继续深度解析需要解锁完整版。
               </p>
             </div>
             <div className="w-fit border border-[#dfd2c1] bg-[#fffaf2] px-3 py-2 text-xs font-semibold text-[#6f6254]">
@@ -328,7 +310,9 @@ export function ReportDetail({ reportId }: { reportId: string }) {
                     {item.question}
                   </div>
                   <div className="max-w-[92%] border border-[#e5d7c5] bg-[#fffaf2] px-4 py-3">
-                    <p className="text-xs font-semibold text-[#9a563f]">{item.statusMessage}</p>
+                    <p className="text-xs font-semibold text-[#9a563f]">
+                      {item.mode === "ai" ? "玄机 AI 深度解析" : "演示深化内容"}
+                    </p>
                     <div className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.answer}</div>
                     <p className="mt-3 text-xs text-[#8a7560]">
                       {new Date(item.createdAt).toLocaleString("zh-CN")}
@@ -375,6 +359,15 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           >
             {isFollowupLoading ? "正在深化生成..." : "继续深化这个问题"}
           </button>
+          {!isUnlocked ? (
+            <button
+              type="button"
+              onClick={() => setShowPayment(true)}
+              className="ml-0 mt-3 h-11 border border-[#9a563f] bg-[#fffaf2] px-5 text-sm font-semibold text-[#9a563f] transition hover:bg-[#9a563f] hover:text-white sm:ml-2"
+            >
+              查看支付信息
+            </button>
+          ) : null}
           {followupHistory.length ? (
             <button
               type="button"
@@ -393,11 +386,20 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
           {followup ? (
             <p className="mt-4 text-xs text-[#8a7560]">
-              最新深化模式：{followup.mode === "ai" ? "真实 AI 深化" : "演示深化"}。内容仅供娱乐和自我探索。
+              最新深化模式：{followup.mode === "ai" ? "玄机 AI 深化" : "演示深化"}。内容仅供娱乐和自我探索。
             </p>
           ) : null}
         </section>
       </section>
+
+      {showPayment ? (
+        <PaymentUnlockPanel
+          unlockCode={unlockCode}
+          onUnlockCodeChange={setUnlockCode}
+          onUnlock={handleUnlock}
+          onClose={() => setShowPayment(false)}
+        />
+      ) : null}
     </main>
   );
 }

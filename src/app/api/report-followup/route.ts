@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         return Response.json({
           answer,
           mode: "ai",
-          statusMessage: "DeepSeek 真实 AI 深化生成",
+          statusMessage: "玄机 AI 深度解析已生成",
         });
       }
     } catch (aiError) {

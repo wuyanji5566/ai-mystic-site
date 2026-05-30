@@ -80,7 +80,7 @@ export async function POST(request: Request) {
           profile,
           report,
           mode: "ai",
-          statusMessage: "DeepSeek 真实 AI 生成",
+          statusMessage: "玄机 AI 深度报告已生成",
         });
       }
     } catch (aiError) {

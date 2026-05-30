@@ -12,6 +12,7 @@ import {
   type ReportStorageMode,
   type SavedMysticReport,
 } from "@/lib/report-storage";
+import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
@@ -74,6 +75,7 @@ export function MysticReportForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [freeUsedCount, setFreeUsedCount] = useState(0);
+  const [showPayment, setShowPayment] = useState(false);
   const reportRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -93,8 +95,9 @@ export function MysticReportForm() {
 
     if (getFreeReportUsage().count >= siteConfig.freeReportsPerUser) {
       setError(
-        `免费生成次数已用完。完整版报告 ${siteConfig.fullReportPriceLabel}，请添加客服微信 ${siteConfig.contactWeChat} 人工付款后解锁。`,
+        `免费生成次数已用完。扫码支付 ${siteConfig.fullReportPriceLabel} 后，可解锁完整版深度报告和继续解析。`,
       );
+      setShowPayment(true);
       return;
     }
 
@@ -126,6 +129,7 @@ export function MysticReportForm() {
       setSavedReport(saved.report);
       setStorageMode(saved.storage);
       setFreeUsedCount(markFreeReportGenerated().count);
+      setShowPayment(true);
       window.setTimeout(() => {
         reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
@@ -149,8 +153,11 @@ export function MysticReportForm() {
 
   async function copyReportText() {
     if (!report) return;
-    await navigator.clipboard.writeText(report.report);
-    setCopyMessage("报告正文已复制，可以直接发给用户或粘贴到文档。");
+    const preview = report.report.split("\n").slice(0, 12).join("\n");
+    await navigator.clipboard.writeText(
+      `${preview}\n\n【完整版内容已隐藏】\n解锁后可查看完整深度分析、继续追问和行动计划。`,
+    );
+    setCopyMessage("免费摘要已复制。完整版内容需要解锁后查看。");
   }
 
   const statusClass =
@@ -370,7 +377,7 @@ export function MysticReportForm() {
 
       {isLoading ? (
         <p className="mt-4 border border-[#d7aa55]/20 bg-[#171f1b] px-4 py-3 text-sm leading-6 text-[#d8cdb9]">
-          已提交信息，DeepSeek 正在生成报告。第一次真实 AI 调用可能需要几秒钟。
+          已提交信息，玄机 AI 正在生成报告。第一次调用可能需要几秒钟。
         </p>
       ) : null}
 
@@ -392,7 +399,7 @@ export function MysticReportForm() {
               </h3>
             </div>
             <span className="w-fit border border-[#121714]/15 px-3 py-1 text-xs font-bold">
-              {report.mode === "ai" ? "真实 AI" : "演示回退"}
+              {report.mode === "ai" ? "玄机 AI" : "演示回退"}
             </span>
           </div>
 
@@ -426,8 +433,26 @@ export function MysticReportForm() {
               onClick={copyReportText}
               className="h-11 border border-[#121714]/18 bg-white px-4 text-sm font-bold transition hover:border-[#8b2732]"
             >
-              复制报告正文
+              复制摘要
             </button>
+          </div>
+
+          <div className="mb-5 border border-[#d7aa55]/35 bg-white p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#9a563f]">继续深度解析</p>
+                <p className="mt-2 text-sm leading-7 text-[#52615b]">
+                  当前是免费体验报告。解锁后可继续深挖事业、关系、财富、30 天行动计划和个性化追问。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPayment(true)}
+                className="h-11 bg-[#9a563f] px-5 text-sm font-bold text-white transition hover:bg-[#1d1a16]"
+              >
+                解锁深度解析
+              </button>
+            </div>
           </div>
 
           {copyMessage ? (
@@ -455,11 +480,26 @@ export function MysticReportForm() {
             </p>
           </div>
           <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
-          <div className="mt-5 whitespace-pre-wrap text-sm leading-7">{report.report}</div>
+          <div className="mt-5 whitespace-pre-wrap text-sm leading-7">
+            {report.report.split("\n").slice(0, 12).join("\n")}
+            {"\n\n【完整版内容已隐藏】\n解锁后可查看事业、关系、财富、未来一年行动清单和继续深度解析。"}
+          </div>
           <p className="mt-5 text-xs text-[#69756f]">
-            当前模式：{report.mode === "ai" ? "DeepSeek 真实 AI 生成" : "演示报告"}
+            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"}
           </p>
         </article>
+      ) : null}
+
+      {showPayment ? (
+        <PaymentUnlockPanel
+          title={report ? "解锁这份报告的深度解析" : "解锁下一次完整报告"}
+          description={
+            report
+              ? "你已经生成免费报告。继续查看完整深度内容、后续追问和行动计划，需要解锁完整版。"
+              : "免费生成次数已用完。支付后可继续生成完整版报告，并获得后续深度解析入口。"
+          }
+          onClose={() => setShowPayment(false)}
+        />
       ) : null}
     </section>
   );

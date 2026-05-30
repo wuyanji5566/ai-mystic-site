@@ -7,7 +7,7 @@ const plans = [
     name: "免费体验版",
     price: "0 元",
     desc: `每位用户免费生成 ${siteConfig.freeReportsPerUser} 次，用来体验基础报告流程。`,
-    features: ["基础命盘概览", "星座/生肖/年柱", "报告摘要", "免费追问 1 次"],
+    features: ["基础命盘概览", "星座/生肖/年柱", "报告摘要", "付费后继续解析"],
   },
   {
     name: "完整版报告",
@@ -33,7 +33,7 @@ export default function PricingPage() {
             {siteConfig.name} 价格与收款
           </h1>
           <p className="mt-3 text-sm leading-7 text-[#d8cdb9]">
-            当前先使用人工微信收款，跑通从生成报告到付费解锁的商业闭环。后续有商户资质后再接微信支付或支付宝自动回调。
+            当前先使用页面内收款码，跑通从生成报告到付费解锁的商业闭环。后续有商户资质后再接微信支付或支付宝自动回调。
           </p>
         </div>
       </section>
@@ -59,12 +59,12 @@ export default function PricingPage() {
             Manual Payment
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl">
-            人工微信收款流程
+            当前收款流程
           </h2>
           <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-7 text-[#d8cdb9]">
             <li>用户生成免费摘要报告。</li>
-            <li>用户添加客服微信：{siteConfig.contactWeChat}。</li>
-            <li>用户转账 {siteConfig.fullReportPriceLabel} 并发送报告链接。</li>
+            <li>用户在页面内扫码支付 {siteConfig.fullReportPriceLabel}。</li>
+            <li>用户备注昵称，必要时发送付款截图和报告链接。</li>
             <li>客服确认后发送演示解锁码或人工标记订单。</li>
           </ol>
         </div>
@@ -82,7 +82,7 @@ export default function PricingPage() {
             />
           </div>
           <p className="mt-3 text-sm leading-7 text-[#52615b]">
-            用户付款 {siteConfig.fullReportPriceLabel} 后，把付款截图和报告链接发给客服微信 {siteConfig.contactWeChat}，由你人工核对并解锁。
+            用户付款 {siteConfig.fullReportPriceLabel} 后，备注昵称；如需人工核对，再把付款截图和报告链接发给客服微信 {siteConfig.contactWeChat}。
           </p>
           <Link
             href="/"
