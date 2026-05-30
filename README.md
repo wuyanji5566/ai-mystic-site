@@ -140,15 +140,54 @@ MYSTIC2026
 POST /api/payments/create
 ```
 
-## 部署上线
+## 海外免费上线
 
-如果服务中国境内客户，建议用：
+你现在选择先走国外上线，建议第一阶段用 Netlify：
+
+```text
+Netlify 免费二级域名 + GitHub 项目导入 + DeepSeek 环境变量
+```
+
+这条路线不需要先买服务器，也不需要中国大陆备案，适合先把网站做成可公开访问、可发给客户体验的网址。
+
+海外上线必须准备：
+
+```text
+GitHub 账号：wuyanji5566
+Netlify 账号
+DeepSeek API Key
+NEXT_PUBLIC_APP_URL：部署成功后的网址
+```
+
+项目已准备海外部署文件：
+
+```text
+DEPLOY_OVERSEAS.md
+netlify.toml
+```
+
+部署成功后，确认这些页面可以打开：
+
+```text
+/
+/pricing
+/privacy
+/deploy
+/robots.txt
+/sitemap.xml
+```
+
+要让搜索引擎收录，还需要把正式网址提交到 Google Search Console 和 Bing Webmaster。部署成功不等于立刻能被搜索到，收录通常需要等待。
+
+## 国内正式上线
+
+如果后面长期服务中国境内客户，建议用：
 
 ```text
 腾讯云轻量应用服务器 / 阿里云 ECS + Node.js 20 + PM2 + Nginx
 ```
 
-项目已准备国内服务器部署文件：
+项目也保留国内服务器部署文件：
 
 ```text
 DEPLOY_CHINA.md

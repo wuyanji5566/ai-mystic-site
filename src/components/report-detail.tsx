@@ -255,19 +255,19 @@ export function ReportDetail({ reportId }: { reportId: string }) {
                   人工收款步骤：扫码付款 {siteConfig.fullReportPriceLabel}，把付款截图和当前报告链接发送给客服微信 {siteConfig.contactWeChat}。
                 </p>
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <input
-                value={unlockCode}
-                onChange={(event) => setUnlockCode(event.target.value)}
-                className="h-10 border border-[#d9c7b2] bg-white px-3 outline-none transition focus:border-[#9a563f]"
-                placeholder="输入解锁码"
-              />
-              <button
-                type="button"
-                onClick={handleUnlock}
-                className="h-10 bg-[#1d1a16] px-4 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
-              >
-                解锁完整版
-              </button>
+                  <input
+                    value={unlockCode}
+                    onChange={(event) => setUnlockCode(event.target.value)}
+                    className="h-10 border border-[#d9c7b2] bg-white px-3 outline-none transition focus:border-[#9a563f]"
+                    placeholder="输入解锁码"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleUnlock}
+                    className="h-10 bg-[#1d1a16] px-4 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
+                  >
+                    解锁完整版
+                  </button>
                 </div>
               </div>
             </div>
@@ -392,13 +392,9 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           ) : null}
 
           {followup ? (
-            <article className="mt-5 border border-[#e5d7c5] bg-[#fffaf2] p-4">
-              <p className="text-sm font-semibold text-[#9a563f]">{followup.statusMessage}</p>
-              <div className="mt-4 whitespace-pre-wrap text-sm leading-7">{followup.answer}</div>
-              <p className="mt-4 text-xs text-[#8a7560]">
-                深化模式：{followup.mode === "ai" ? "真实 AI 深化" : "演示深化"}。内容仅供娱乐和自我探索。
-              </p>
-            </article>
+            <p className="mt-4 text-xs text-[#8a7560]">
+              最新深化模式：{followup.mode === "ai" ? "真实 AI 深化" : "演示深化"}。内容仅供娱乐和自我探索。
+            </p>
           ) : null}
         </section>
       </section>
