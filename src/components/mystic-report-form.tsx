@@ -42,6 +42,39 @@ const initialForm: MysticInput = {
 
 const focusPresets = ["事业方向", "亲密关系", "财富习惯", "人生定位", "MBTI 调整"];
 
+const reportIntentPresets = [
+  {
+    title: "深度咨询版",
+    desc: "适合想全面了解自己，重点看人格、事业、关系和长期节奏。",
+    focus:
+      "请按深度咨询报告方式分析我，重点拆解核心人格、事业定位、关系模式、财富习惯、未来一年阶段提醒，并给出可执行建议。",
+  },
+  {
+    title: "30 天行动版",
+    desc: "适合已经有困惑，想把报告变成短期行动计划。",
+    focus:
+      "请重点分析我当前最适合优先处理的问题，并生成未来 30 天行动计划，包含每周任务、执行提醒、容易放弃的原因和调整方式。",
+  },
+  {
+    title: "事业副业版",
+    desc: "适合重点看工作定位、变现方向、副业节奏和能力补齐。",
+    focus:
+      "请重点分析事业定位、副业方向、适合的工作环境、不适合的合作模式、财富节奏，以及未来三个月可以做的具体动作。",
+  },
+  {
+    title: "关系复盘版",
+    desc: "适合重点看亲密关系、人际边界、情绪触发和沟通方式。",
+    focus:
+      "请重点分析亲密关系和人际关系模式，包括沟通方式、边界感、情绪触发点、适合的相处方式和未来 30 天可练习的关系行动。",
+  },
+];
+
+const generationHighlights = [
+  ["01", "资料建模", "出生信息、地点、时间、MBTI 与当前关注点"],
+  ["02", "四维融合", "紫微视角、八字节律、星座能量、行为模式"],
+  ["03", "报告输出", "免费摘要、完整版解锁、继续深度追问"],
+];
+
 const mbtiTypes = [
   "不确定",
   "INTJ",
@@ -69,6 +102,7 @@ const labelClass = "grid gap-2 text-sm font-semibold text-[#f1e6d2]";
 
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
+  const [selectedIntent, setSelectedIntent] = useState(reportIntentPresets[0].title);
   const [report, setReport] = useState<ReportResponse | null>(null);
   const [savedReport, setSavedReport] = useState<SavedMysticReport | null>(null);
   const [storageMode, setStorageMode] = useState<ReportStorageMode>("local");
@@ -220,7 +254,57 @@ export function MysticReportForm() {
         </p>
       </div>
 
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {generationHighlights.map(([step, title, desc]) => (
+          <article key={step} className="border border-[#f5efe2]/10 bg-[#121a17] p-4">
+            <p className="text-xs font-bold text-[#d7aa55]">{step}</p>
+            <h3 className="mt-3 text-sm font-bold text-[#fff8ec]">{title}</h3>
+            <p className="mt-2 text-xs leading-5 text-[#c7baa6]">{desc}</p>
+          </article>
+        ))}
+      </div>
+
       <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
+        <div className="border border-[#d7aa55]/18 bg-[#0b100e] p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
+                Report Mode
+              </p>
+              <h3 className="mt-2 text-xl font-bold text-[#fff8ec]">选择报告用途</h3>
+            </div>
+            <p className="max-w-sm text-xs leading-5 text-[#c7baa6]">
+              用途越具体，生成结果越像咨询报告，而不是泛泛的性格描述。
+            </p>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {reportIntentPresets.map((preset) => (
+              <button
+                key={preset.title}
+                type="button"
+                onClick={() => {
+                  setSelectedIntent(preset.title);
+                  setForm({ ...form, focus: preset.focus });
+                }}
+                className={`border p-4 text-left transition ${
+                  selectedIntent === preset.title
+                    ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
+                    : "border-[#f5efe2]/12 bg-[#101713] text-[#f5efe2] hover:border-[#d7aa55]"
+                }`}
+              >
+                <span className="text-sm font-bold">{preset.title}</span>
+                <span
+                  className={`mt-2 block text-xs leading-5 ${
+                    selectedIntent === preset.title ? "text-[#2b261c]" : "text-[#c7baa6]"
+                  }`}
+                >
+                  {preset.desc}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className={labelClass}>
           昵称
           <input
@@ -383,9 +467,17 @@ export function MysticReportForm() {
       </form>
 
       {isLoading ? (
-        <p className="mt-4 border border-[#d7aa55]/20 bg-[#171f1b] px-4 py-3 text-sm leading-6 text-[#d8cdb9]">
-          已提交信息，正在生成报告。内容较长时可能需要 10-30 秒，请不要重复点击。
-        </p>
+        <div className="mt-4 border border-[#d7aa55]/20 bg-[#171f1b] p-4 text-sm leading-6 text-[#d8cdb9]">
+          <p className="font-bold text-[#fff8ec]">正在生成你的四维报告</p>
+          <p className="mt-2">内容较长时可能需要 10-30 秒，请不要重复点击。系统正在完成资料建模、四维融合和报告整理。</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {["建模中", "融合中", "整理中"].map((step) => (
+              <div key={step} className="border border-[#d7aa55]/16 bg-[#0f1412] px-3 py-2 text-xs font-bold text-[#d7aa55]">
+                {step}
+              </div>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       {error ? (
