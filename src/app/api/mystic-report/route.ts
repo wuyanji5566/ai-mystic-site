@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
       maxRetries: 0,
-      timeout: 8000,
+      timeout: 25000,
     });
 
     try {

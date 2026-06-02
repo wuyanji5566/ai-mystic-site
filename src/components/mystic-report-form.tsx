@@ -93,13 +93,7 @@ export function MysticReportForm() {
     setSavedReport(null);
     setCopyMessage("");
 
-    if (getFreeReportUsage().count >= siteConfig.freeReportsPerUser) {
-      setError(
-        `免费生成次数已用完。扫码支付 ${siteConfig.fullReportPriceLabel} 后，可解锁完整版深度报告和继续解析。`,
-      );
-      setShowPayment(true);
-      return;
-    }
+    const hasUsedFreeReport = getFreeReportUsage().count >= siteConfig.freeReportsPerUser;
 
     setIsLoading(true);
 
@@ -117,18 +111,36 @@ export function MysticReportForm() {
       }
 
       const reportData = data as ReportResponse;
-      const saved = await saveReportWithCloudFallback({
-        input: form,
-        profile: reportData.profile,
-        report: reportData.report,
-        mode: reportData.mode,
-        statusMessage: reportData.statusMessage,
-      });
-
       setReport(reportData);
-      setSavedReport(saved.report);
-      setStorageMode(saved.storage);
-      setFreeUsedCount(markFreeReportGenerated().count);
+
+      try {
+        const saved = await saveReportWithCloudFallback({
+          input: form,
+          profile: reportData.profile,
+          report: reportData.report,
+          mode: reportData.mode,
+          statusMessage: reportData.statusMessage,
+        });
+        setSavedReport(saved.report);
+        setStorageMode(saved.storage);
+      } catch (storageError) {
+        console.error("Report generated but local save failed:", storageError);
+        setSavedReport(null);
+        setStorageMode("local");
+        setCopyMessage("报告已生成，但当前浏览器阻止了本地保存；请先截图或复制摘要。");
+      }
+
+      try {
+        setFreeUsedCount(markFreeReportGenerated().count);
+      } catch (usageError) {
+        console.error("Report generated but usage counter failed:", usageError);
+      }
+
+      if (hasUsedFreeReport) {
+        setCopyMessage(
+          `已为你生成新的免费摘要。完整版深度解析 ${siteConfig.fullReportPriceLabel} 可扫码解锁。`,
+        );
+      }
       window.setTimeout(() => {
         reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
