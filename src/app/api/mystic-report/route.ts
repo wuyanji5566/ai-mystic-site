@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
       maxRetries: 0,
-      timeout: 35000,
+      timeout: 22000,
     });
 
     try {
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
           },
         ],
         temperature: 0.7,
-        max_tokens: 3200,
+        max_tokens: 2400,
       });
 
       const report = completion.choices[0]?.message?.content?.trim();
