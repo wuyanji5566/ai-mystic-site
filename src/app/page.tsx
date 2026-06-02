@@ -61,10 +61,10 @@ const faqs = [
 ];
 
 const links = [
+  ["报告样例", "/examples"],
+  ["解锁流程", "/service"],
   ["用户中心", "/account"],
-  ["历史报告", "/reports"],
   ["价格方案", "/pricing"],
-  ["隐私政策", "/privacy"],
 ];
 
 export default function Home() {

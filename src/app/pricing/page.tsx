@@ -90,6 +90,12 @@ export default function PricingPage() {
           >
             返回生成报告
           </Link>
+          <Link
+            href="/service"
+            className="ml-0 mt-3 inline-flex h-11 items-center border border-[#121714]/18 px-5 text-sm font-bold text-[#121714] transition hover:border-[#8b2732] hover:text-[#8b2732] sm:ml-3"
+          >
+            查看解锁流程
+          </Link>
         </div>
       </section>
 

@@ -438,6 +438,12 @@ export function MysticReportForm() {
             >
               复制摘要
             </button>
+            <Link
+              href="/service"
+              className="flex h-11 items-center justify-center border border-[#121714]/18 bg-white px-4 text-sm font-bold transition hover:border-[#8b2732]"
+            >
+              解锁流程
+            </Link>
           </div>
 
           <div className="mb-5 border border-[#d7aa55]/35 bg-white p-4">
