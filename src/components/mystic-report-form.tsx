@@ -75,6 +75,26 @@ const generationHighlights = [
   ["03", "报告输出", "免费摘要、完整版解锁、继续深度追问"],
 ];
 
+const currentYear = new Date().getFullYear();
+const birthYears = Array.from({ length: currentYear - 1939 }, (_, index) => currentYear - index);
+const birthMonths = Array.from({ length: 12 }, (_, index) => index + 1);
+
+function getDaysInMonth(year: string, month: string) {
+  const parsedYear = Number(year || currentYear);
+  const parsedMonth = Number(month || 1);
+  return new Date(parsedYear, parsedMonth, 0).getDate();
+}
+
+function splitBirthDate(date: string) {
+  const [year = "", month = "", day = ""] = date.split("-");
+  return { year, month, day };
+}
+
+function buildBirthDate(year: string, month: string, day: string) {
+  if (!year || !month || !day) return "";
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
 const mbtiTypes = [
   "不确定",
   "INTJ",
@@ -204,6 +224,22 @@ export function MysticReportForm() {
       `${preview}\n\n【完整版内容已隐藏】\n解锁后可查看完整深度分析、继续追问和行动计划。`,
     );
     setCopyMessage("免费摘要已复制。完整版内容需要解锁后查看。");
+  }
+
+  const birthDateParts = splitBirthDate(form.birthDate);
+  const birthDays = Array.from(
+    { length: getDaysInMonth(birthDateParts.year, birthDateParts.month) },
+    (_, index) => index + 1,
+  );
+
+  function updateBirthDate(part: "year" | "month" | "day", value: string) {
+    const next = { ...birthDateParts, [part]: value };
+    const maxDay = getDaysInMonth(next.year, next.month);
+    const nextDay = next.day && Number(next.day) > maxDay ? String(maxDay) : next.day;
+    setForm({
+      ...form,
+      birthDate: buildBirthDate(next.year, next.month, nextDay),
+    });
   }
 
   return (
@@ -346,16 +382,61 @@ export function MysticReportForm() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className={labelClass}>
-            出生日期
-            <input
-              required
-              type="date"
-              value={form.birthDate}
-              onChange={(event) => setForm({ ...form, birthDate: event.target.value })}
-              className={inputClass}
-            />
-          </label>
+          <div className={labelClass}>
+            <div className="flex items-center justify-between gap-3">
+              <span>出生日期</span>
+              <span className="text-xs font-normal text-[#9fa89f]">
+                {form.birthDate || "请选择年月日"}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                required
+                aria-label="出生年份"
+                value={birthDateParts.year}
+                onChange={(event) => updateBirthDate("year", event.target.value)}
+                className={inputClass}
+              >
+                <option value="">年</option>
+                {birthYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year} 年
+                  </option>
+                ))}
+              </select>
+              <select
+                required
+                aria-label="出生月份"
+                value={birthDateParts.month ? String(Number(birthDateParts.month)) : ""}
+                onChange={(event) => updateBirthDate("month", event.target.value)}
+                className={inputClass}
+              >
+                <option value="">月</option>
+                {birthMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {month} 月
+                  </option>
+                ))}
+              </select>
+              <select
+                required
+                aria-label="出生日期"
+                value={birthDateParts.day ? String(Number(birthDateParts.day)) : ""}
+                onChange={(event) => updateBirthDate("day", event.target.value)}
+                className={inputClass}
+              >
+                <option value="">日</option>
+                {birthDays.map((day) => (
+                  <option key={day} value={day}>
+                    {day} 日
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs font-normal leading-5 text-[#9fa89f]">
+              手机端不用翻日历，直接选择年份、月份、日期即可。
+            </p>
+          </div>
 
           <label className={labelClass}>
             出生时间
