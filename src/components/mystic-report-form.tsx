@@ -13,6 +13,7 @@ import {
   type SavedMysticReport,
 } from "@/lib/report-storage";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
+import { ReportSectionCards } from "@/components/report-section-cards";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
@@ -482,9 +483,8 @@ export function MysticReportForm() {
             </p>
           </div>
           <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
-          <div className="mt-5 whitespace-pre-wrap text-sm leading-7">
-            {report.report.split("\n").slice(0, 12).join("\n")}
-            {"\n\n【完整版内容已隐藏】\n解锁后可查看事业、关系、财富、未来一年行动清单和继续深度解析。"}
+          <div className="mt-5">
+            <ReportSectionCards report={report.report} limit={4} locked />
           </div>
           <p className="mt-5 text-xs text-[#69756f]">
             当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"}

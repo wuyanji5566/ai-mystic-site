@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
+import { ReportSectionCards } from "@/components/report-section-cards";
 import { siteConfig } from "@/lib/site-config";
 import {
   clearReportFollowups,
@@ -277,11 +278,13 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           </div>
 
           <p className="mt-4 text-sm leading-7 text-[#6f6254]">{report.profile.birthSummary}</p>
-          <div className="mt-6 whitespace-pre-wrap text-sm leading-7">
-            {isUnlocked
-              ? report.report
-              : report.report.split("\n").slice(0, 8).join("\n") +
-                "\n\n【完整版内容已隐藏】\n解锁后可查看事业、感情、财富、未来一年行动清单和完整总结。"}
+          <div className="mt-6">
+            <ReportSectionCards
+              report={report.report}
+              limit={isUnlocked ? undefined : 4}
+              locked={!isUnlocked}
+              variant="warm"
+            />
           </div>
           <p className="mt-6 text-xs text-[#8a7560]">
             当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"}。内容仅供娱乐和自我探索。

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { siteConfig } from "@/lib/site-config";
 
 type PaymentUnlockPanelProps = {
@@ -22,6 +23,30 @@ export function PaymentUnlockPanel({
   onClose,
   compact = false,
 }: PaymentUnlockPanelProps) {
+  const [copied, setCopied] = useState(false);
+  const [orderId, setOrderId] = useState("生成中");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const date = new Date();
+      const stamp = [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+        String(date.getHours()).padStart(2, "0"),
+        String(date.getMinutes()).padStart(2, "0"),
+      ].join("");
+      setOrderId(`XJ${stamp}${Math.random().toString(36).slice(2, 6).toUpperCase()}`);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  async function copyOrderId() {
+    await navigator.clipboard.writeText(orderId);
+    setCopied(true);
+  }
+
   return (
     <section
       className={
@@ -68,11 +93,27 @@ export function PaymentUnlockPanel({
             />
           </div>
           <div className="grid content-start gap-3 text-sm leading-7 text-[#62584b]">
+            <div className="border border-[#d7aa55]/35 bg-white p-3">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9a563f]">
+                Order No.
+              </p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <strong className="text-lg text-[#121714]">{orderId}</strong>
+                <button
+                  type="button"
+                  onClick={copyOrderId}
+                  className="h-9 border border-[#d9c7b2] bg-[#fffaf2] px-3 text-xs font-bold text-[#9a563f] transition hover:border-[#9a563f]"
+                >
+                  {copied ? "已复制" : "复制订单号"}
+                </button>
+              </div>
+            </div>
             <p>
               价格：<strong className="text-[#121714]">{siteConfig.fullReportPriceLabel}</strong>
             </p>
             <p>
-              付款方式：扫码支付后，备注你的昵称；如需人工核对，把付款截图发送给客服微信{" "}
+              付款方式：扫码支付后，请在付款备注里填写订单号{" "}
+              <strong className="text-[#121714]">{orderId}</strong>；如需人工核对，把付款截图发送给客服微信{" "}
               <strong className="text-[#121714]">{siteConfig.contactWeChat}</strong>。
             </p>
             <p>
