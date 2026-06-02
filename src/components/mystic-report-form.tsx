@@ -151,6 +151,8 @@ const labelClass = "grid gap-2 text-sm font-semibold text-[#f1e6d2]";
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
   const [selectedIntent, setSelectedIntent] = useState(reportIntentPresets[0].title);
+  const [birthDateDraft, setBirthDateDraft] = useState(() => splitBirthDate(initialForm.birthDate));
+  const [birthTimeDraft, setBirthTimeDraft] = useState(() => splitBirthTime(initialForm.birthTime));
   const [birthTimeMode, setBirthTimeMode] =
     useState<(typeof birthTimeModes)[number][0]>("precise");
   const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -178,6 +180,11 @@ export function MysticReportForm() {
     setReport(null);
     setSavedReport(null);
     setCopyMessage("");
+
+    if (!form.birthDate) {
+      setError("请选择完整的出生日期。");
+      return;
+    }
 
     if (!form.birthTime) {
       setError("请选择出生时间。如果不确定，可以选择“不知道时间”。");
@@ -262,25 +269,26 @@ export function MysticReportForm() {
     setCopyMessage("免费摘要已复制。完整版内容需要解锁后查看。");
   }
 
-  const birthDateParts = splitBirthDate(form.birthDate);
-  const birthTimeParts = splitBirthTime(form.birthTime);
   const birthDays = Array.from(
-    { length: getDaysInMonth(birthDateParts.year, birthDateParts.month) },
+    { length: getDaysInMonth(birthDateDraft.year, birthDateDraft.month) },
     (_, index) => index + 1,
   );
 
   function updateBirthDate(part: "year" | "month" | "day", value: string) {
-    const next = { ...birthDateParts, [part]: value };
+    const next = { ...birthDateDraft, [part]: value };
     const maxDay = getDaysInMonth(next.year, next.month);
     const nextDay = next.day && Number(next.day) > maxDay ? String(maxDay) : next.day;
+    const nextDraft = { ...next, day: nextDay };
+    setBirthDateDraft(nextDraft);
     setForm({
       ...form,
-      birthDate: buildBirthDate(next.year, next.month, nextDay),
+      birthDate: buildBirthDate(nextDraft.year, nextDraft.month, nextDraft.day),
     });
   }
 
   function updatePreciseBirthTime(part: "hour" | "minute", value: string) {
-    const next = { ...birthTimeParts, [part]: value };
+    const next = { ...birthTimeDraft, [part]: value };
+    setBirthTimeDraft(next);
     setForm({
       ...form,
       birthTime: next.hour && next.minute ? `${next.hour.padStart(2, "0")}:${next.minute.padStart(2, "0")}` : "",
@@ -292,6 +300,7 @@ export function MysticReportForm() {
     setBirthTimeMode(mode);
     if (mode === "unknown") {
       setSelectedPeriod("");
+      setBirthTimeDraft({ hour: "12", minute: "00" });
       setForm({
         ...form,
         birthTime: "12:00",
@@ -302,6 +311,7 @@ export function MysticReportForm() {
 
     if (mode === "period") {
       setSelectedPeriod("");
+      setBirthTimeDraft({ hour: "", minute: "" });
       setForm({
         ...form,
         birthTime: "",
@@ -312,6 +322,7 @@ export function MysticReportForm() {
 
     if (mode === "precise") {
       setSelectedPeriod("");
+      setBirthTimeDraft({ hour: "", minute: "" });
       setForm({
         ...form,
         birthTime: "",
@@ -322,6 +333,7 @@ export function MysticReportForm() {
 
   function selectTimePeriod(label: string, time: string, range: string) {
     setSelectedPeriod(label);
+    setBirthTimeDraft(splitBirthTime(time));
     setForm({
       ...form,
       birthTime: time,
@@ -480,7 +492,7 @@ export function MysticReportForm() {
               <select
                 required
                 aria-label="出生年份"
-                value={birthDateParts.year}
+                value={birthDateDraft.year}
                 onChange={(event) => updateBirthDate("year", event.target.value)}
                 className={inputClass}
               >
@@ -494,7 +506,7 @@ export function MysticReportForm() {
               <select
                 required
                 aria-label="出生月份"
-                value={birthDateParts.month ? String(Number(birthDateParts.month)) : ""}
+                value={birthDateDraft.month ? String(Number(birthDateDraft.month)) : ""}
                 onChange={(event) => updateBirthDate("month", event.target.value)}
                 className={inputClass}
               >
@@ -508,7 +520,7 @@ export function MysticReportForm() {
               <select
                 required
                 aria-label="出生日期"
-                value={birthDateParts.day ? String(Number(birthDateParts.day)) : ""}
+                value={birthDateDraft.day ? String(Number(birthDateDraft.day)) : ""}
                 onChange={(event) => updateBirthDate("day", event.target.value)}
                 className={inputClass}
               >
@@ -554,7 +566,7 @@ export function MysticReportForm() {
                 <select
                   required
                   aria-label="出生小时"
-                  value={birthTimeParts.hour ? String(Number(birthTimeParts.hour)) : ""}
+                  value={birthTimeDraft.hour ? String(Number(birthTimeDraft.hour)) : ""}
                   onChange={(event) => updatePreciseBirthTime("hour", event.target.value)}
                   className={inputClass}
                 >
@@ -568,7 +580,7 @@ export function MysticReportForm() {
                 <select
                   required
                   aria-label="出生分钟"
-                  value={birthTimeParts.minute ? String(Number(birthTimeParts.minute)) : ""}
+                  value={birthTimeDraft.minute ? String(Number(birthTimeDraft.minute)) : ""}
                   onChange={(event) => updatePreciseBirthTime("minute", event.target.value)}
                   className={inputClass}
                 >
