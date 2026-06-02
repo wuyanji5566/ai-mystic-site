@@ -3,6 +3,7 @@ export type MysticInput = {
   gender: string;
   birthDate: string;
   birthTime: string;
+  birthTimeNote?: string;
   birthPlace: string;
   calendarType: "solar" | "lunar";
   mbtiType: string;
@@ -57,7 +58,8 @@ export function buildMysticProfile(input: MysticInput): MysticProfile {
 
   const calendarLabel = input.calendarType === "solar" ? "公历" : "农历";
   const mbtiLabel = input.mbtiType === "不确定" ? "MBTI 暂不确定" : `MBTI 倾向为 ${input.mbtiType}`;
-  const birthSummary = `${input.name}，${input.gender}，${calendarLabel} ${input.birthDate} ${input.birthTime} 出生于 ${input.birthPlace}。当前 MVP 使用公历生日识别星座，并用年份生成基础生肖与年柱信息；${mbtiLabel}。`;
+  const timeNote = input.birthTimeNote ? `（${input.birthTimeNote}）` : "";
+  const birthSummary = `${input.name}，${input.gender}，${calendarLabel} ${input.birthDate} ${input.birthTime}${timeNote} 出生于 ${input.birthPlace}。当前 MVP 使用公历生日识别星座，并用年份生成基础生肖与年柱信息；${mbtiLabel}。`;
 
   return {
     zodiac,

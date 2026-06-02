@@ -8,6 +8,7 @@ const mysticRequestSchema = z.object({
   gender: z.string().trim().min(1).max(20),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "出生日期格式不正确"),
   birthTime: z.string().regex(/^\d{2}:\d{2}$/, "出生时间格式不正确"),
+  birthTimeNote: z.string().trim().max(80).optional(),
   birthPlace: z.string().trim().min(1, "请填写出生地点").max(60, "地点不要超过 60 个字"),
   calendarType: z.enum(["solar", "lunar"]),
   mbtiType: z.string().trim().min(1).max(20),

@@ -7,6 +7,7 @@ const reportSchema = z.object({
     gender: z.string(),
     birthDate: z.string(),
     birthTime: z.string(),
+    birthTimeNote: z.string().optional(),
     birthPlace: z.string(),
     calendarType: z.enum(["solar", "lunar"]),
     mbtiType: z.string().default("不确定"),

@@ -29,6 +29,7 @@ export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
 - 历法：${input.calendarType === "solar" ? "公历" : "农历"}
 - 出生日期：${input.birthDate}
 - 出生时间：${input.birthTime}
+- 出生时间说明：${input.birthTimeNote || "用户提供了具体时间"}
 - 出生地点：${input.birthPlace}
 - MBTI 类型：${input.mbtiType}
 - MBTI 确认度：${input.mbtiCertainty === "known" ? "用户明确知道" : input.mbtiCertainty === "estimated" ? "用户大概估计" : "用户不确定"}

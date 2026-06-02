@@ -78,6 +78,29 @@ const generationHighlights = [
 const currentYear = new Date().getFullYear();
 const birthYears = Array.from({ length: currentYear - 1939 }, (_, index) => currentYear - index);
 const birthMonths = Array.from({ length: 12 }, (_, index) => index + 1);
+const hours = Array.from({ length: 24 }, (_, index) => index);
+const minutes = Array.from({ length: 12 }, (_, index) => index * 5);
+
+const birthTimeModes = [
+  ["precise", "精确时间"],
+  ["period", "按时辰选"],
+  ["unknown", "不知道时间"],
+] as const;
+
+const timePeriodPresets = [
+  ["子时", "00:00", "23:00-00:59"],
+  ["丑时", "01:00", "01:00-02:59"],
+  ["寅时", "03:00", "03:00-04:59"],
+  ["卯时", "05:00", "05:00-06:59"],
+  ["辰时", "07:00", "07:00-08:59"],
+  ["巳时", "09:00", "09:00-10:59"],
+  ["午时", "11:00", "11:00-12:59"],
+  ["未时", "13:00", "13:00-14:59"],
+  ["申时", "15:00", "15:00-16:59"],
+  ["酉时", "17:00", "17:00-18:59"],
+  ["戌时", "19:00", "19:00-20:59"],
+  ["亥时", "21:00", "21:00-22:59"],
+] as const;
 
 function getDaysInMonth(year: string, month: string) {
   const parsedYear = Number(year || currentYear);
@@ -93,6 +116,11 @@ function splitBirthDate(date: string) {
 function buildBirthDate(year: string, month: string, day: string) {
   if (!year || !month || !day) return "";
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function splitBirthTime(time: string) {
+  const [hour = "", minute = ""] = time.split(":");
+  return { hour, minute };
 }
 
 const mbtiTypes = [
@@ -123,6 +151,9 @@ const labelClass = "grid gap-2 text-sm font-semibold text-[#f1e6d2]";
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
   const [selectedIntent, setSelectedIntent] = useState(reportIntentPresets[0].title);
+  const [birthTimeMode, setBirthTimeMode] =
+    useState<(typeof birthTimeModes)[number][0]>("precise");
+  const [selectedPeriod, setSelectedPeriod] = useState("");
   const [report, setReport] = useState<ReportResponse | null>(null);
   const [savedReport, setSavedReport] = useState<SavedMysticReport | null>(null);
   const [storageMode, setStorageMode] = useState<ReportStorageMode>("local");
@@ -147,6 +178,11 @@ export function MysticReportForm() {
     setReport(null);
     setSavedReport(null);
     setCopyMessage("");
+
+    if (!form.birthTime) {
+      setError("请选择出生时间。如果不确定，可以选择“不知道时间”。");
+      return;
+    }
 
     const hasUsedFreeReport = getFreeReportUsage().count >= siteConfig.freeReportsPerUser;
 
@@ -227,6 +263,7 @@ export function MysticReportForm() {
   }
 
   const birthDateParts = splitBirthDate(form.birthDate);
+  const birthTimeParts = splitBirthTime(form.birthTime);
   const birthDays = Array.from(
     { length: getDaysInMonth(birthDateParts.year, birthDateParts.month) },
     (_, index) => index + 1,
@@ -239,6 +276,56 @@ export function MysticReportForm() {
     setForm({
       ...form,
       birthDate: buildBirthDate(next.year, next.month, nextDay),
+    });
+  }
+
+  function updatePreciseBirthTime(part: "hour" | "minute", value: string) {
+    const next = { ...birthTimeParts, [part]: value };
+    setForm({
+      ...form,
+      birthTime: next.hour && next.minute ? `${next.hour.padStart(2, "0")}:${next.minute.padStart(2, "0")}` : "",
+      birthTimeNote: "用户提供了具体出生时间",
+    });
+  }
+
+  function selectBirthTimeMode(mode: (typeof birthTimeModes)[number][0]) {
+    setBirthTimeMode(mode);
+    if (mode === "unknown") {
+      setSelectedPeriod("");
+      setForm({
+        ...form,
+        birthTime: "12:00",
+        birthTimeNote: "用户不确定具体出生时间，系统按中午 12:00 做宽泛参考",
+      });
+      return;
+    }
+
+    if (mode === "period") {
+      setSelectedPeriod("");
+      setForm({
+        ...form,
+        birthTime: "",
+        birthTimeNote: "用户准备按传统时辰选择出生时间",
+      });
+      return;
+    }
+
+    if (mode === "precise") {
+      setSelectedPeriod("");
+      setForm({
+        ...form,
+        birthTime: "",
+        birthTimeNote: "用户提供了具体出生时间",
+      });
+    }
+  }
+
+  function selectTimePeriod(label: string, time: string, range: string) {
+    setSelectedPeriod(label);
+    setForm({
+      ...form,
+      birthTime: time,
+      birthTimeNote: `用户按传统时辰选择了${label}（${range}），系统取该时辰代表时间做参考`,
     });
   }
 
@@ -438,16 +525,89 @@ export function MysticReportForm() {
             </p>
           </div>
 
-          <label className={labelClass}>
-            出生时间
-            <input
-              required
-              type="time"
-              value={form.birthTime}
-              onChange={(event) => setForm({ ...form, birthTime: event.target.value })}
-              className={inputClass}
-            />
-          </label>
+          <div className={labelClass}>
+            <div className="flex items-center justify-between gap-3">
+              <span>出生时间</span>
+              <span className="text-xs font-normal text-[#9fa89f]">
+                {form.birthTimeNote || form.birthTime || "请选择时间"}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {birthTimeModes.map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => selectBirthTimeMode(mode)}
+                  className={`h-11 border px-2 text-xs font-bold transition ${
+                    birthTimeMode === mode
+                      ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
+                      : "border-[#f5efe2]/12 bg-[#0f1412] text-[#cfc2ae] hover:border-[#d7aa55]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {birthTimeMode === "precise" ? (
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  required
+                  aria-label="出生小时"
+                  value={birthTimeParts.hour ? String(Number(birthTimeParts.hour)) : ""}
+                  onChange={(event) => updatePreciseBirthTime("hour", event.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">小时</option>
+                  {hours.map((hour) => (
+                    <option key={hour} value={hour}>
+                      {String(hour).padStart(2, "0")} 点
+                    </option>
+                  ))}
+                </select>
+                <select
+                  required
+                  aria-label="出生分钟"
+                  value={birthTimeParts.minute ? String(Number(birthTimeParts.minute)) : ""}
+                  onChange={(event) => updatePreciseBirthTime("minute", event.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">分钟</option>
+                  {minutes.map((minute) => (
+                    <option key={minute} value={minute}>
+                      {String(minute).padStart(2, "0")} 分
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
+            {birthTimeMode === "period" ? (
+              <div className="grid grid-cols-3 gap-2">
+                {timePeriodPresets.map(([label, time, range]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => selectTimePeriod(label, time, range)}
+                    className={`border px-2 py-2 text-left text-xs leading-5 transition ${
+                      selectedPeriod === label
+                        ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
+                        : "border-[#f5efe2]/12 bg-[#0f1412] text-[#cfc2ae] hover:border-[#d7aa55]"
+                    }`}
+                  >
+                    <strong className="block">{label}</strong>
+                    <span>{range}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {birthTimeMode === "unknown" ? (
+              <p className="border border-[#d7aa55]/18 bg-[#0f1412] px-3 py-2 text-xs font-normal leading-5 text-[#cfc2ae]">
+                不知道具体时间也可以生成。报告会减少对时辰的判断，更多按生日、年份、星座和 MBTI 做宽泛分析。
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-[1fr_0.9fr]">
