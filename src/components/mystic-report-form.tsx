@@ -9,11 +9,13 @@ import {
 } from "@/lib/account-storage";
 import {
   saveReportWithCloudFallback,
+  unlockReport,
   type ReportStorageMode,
   type SavedMysticReport,
 } from "@/lib/report-storage";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { FreeSummaryReport } from "@/components/free-summary-report";
+import { ReportSectionCards } from "@/components/report-section-cards";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
@@ -92,15 +94,24 @@ const generationHighlights = [
   ["03", "报告输出", "免费摘要、完整版解锁、继续深度追问"],
 ];
 
+const generationStatusSteps = [
+  "正在读取出生节律",
+  "正在构建紫微结构",
+  "正在识别星座能量",
+  "正在匹配 MBTI 行为模式",
+  "正在生成四维交叉画像",
+  "正在输出你的免费摘要",
+];
+
 const currentYear = new Date().getFullYear();
 const birthMonths = Array.from({ length: 12 }, (_, index) => index + 1);
 const hours = Array.from({ length: 24 }, (_, index) => index);
 const minutes = Array.from({ length: 12 }, (_, index) => index * 5);
 
 const formSteps = [
-  ["01", "基础信息", "昵称、性别、出生日期、出生时间、出生地"],
-  ["02", "人格关注", "MBTI、关注方向、报告用途"],
-  ["03", "确认生成", "检查信息并生成免费摘要"],
+  ["01", "基础信息", "用于建立你的出生节律与人生阶段参考。"],
+  ["02", "人格关注", "用于识别你的行为模式、关系需求与现实困惑。"],
+  ["03", "生成摘要", "AI 将融合四维模型，输出你的免费核心画像。"],
 ] as const;
 
 type FormStep = 1 | 2 | 3;
@@ -172,6 +183,41 @@ const inputClass =
 
 const labelClass = "grid gap-2 text-sm font-semibold text-[#f1e6d2]";
 
+function getPersonaBadge(input: MysticInput, profile?: ReportResponse["profile"]) {
+  const focus = input.focus;
+  const mbti = input.mbtiType || "未知";
+  const archetype = /事业|财富|副业|转型/.test(focus)
+    ? "长期构建型"
+    : /感情|婚姻|关系/.test(focus)
+      ? "边界敏感型"
+      : /INTJ|INTP|INFJ|INFP/.test(mbti)
+        ? "深度策略型"
+        : "四维探索型";
+
+  return {
+    title: `${archetype} · ${profile?.westernSign || "星座能量"} · ${mbti}`,
+    tags: [
+      /事业|财富|副业|转型/.test(focus) ? "事业路径" : "自我复盘",
+      profile?.zodiac ? `${profile.zodiac}年节律` : "出生节律",
+      input.birthTimeNote?.includes("不确定") ? "时间不确定版" : "精确时间版",
+    ],
+  };
+}
+
+function getDimensionScores(input: MysticInput, profile?: ReportResponse["profile"]) {
+  const seed = `${input.name}${input.birthDate}${input.birthPlace}${input.mbtiType}${profile?.westernSign || ""}`;
+  const base = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const focusBonus = /事业|财富|副业|转型/.test(input.focus) ? 6 : 0;
+  const relationBonus = /感情|婚姻|关系/.test(input.focus) ? 6 : 0;
+
+  return [
+    ["出生节律", 70 + ((base + focusBonus) % 19)],
+    ["人生结构", 68 + ((base * 3 + relationBonus) % 21)],
+    ["情绪能量", 66 + ((base * 5 + relationBonus) % 23)],
+    ["行动模式", 72 + ((base * 7 + focusBonus) % 18)],
+  ] as const;
+}
+
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
   const [activeStep, setActiveStep] = useState<FormStep>(1);
@@ -190,7 +236,12 @@ export function MysticReportForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [freeUsedCount, setFreeUsedCount] = useState(0);
   const [showPayment, setShowPayment] = useState(false);
+  const [isCurrentReportUnlocked, setIsCurrentReportUnlocked] = useState(false);
   const [unlockSeconds, setUnlockSeconds] = useState(15 * 60);
+  const [generationStepIndex, setGenerationStepIndex] = useState(0);
+  const [showMobileCta, setShowMobileCta] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const reportRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -209,12 +260,40 @@ export function MysticReportForm() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timer = window.setInterval(() => {
+      setGenerationStepIndex((index) =>
+        Math.min(index + 1, generationStatusSteps.length - 1),
+      );
+    }, 900);
+
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
+
+  useEffect(() => {
+    const target = sectionRef.current;
+    if (!target || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowMobileCta(entry.isIntersecting);
+      },
+      { threshold: 0.12 },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setReport(null);
     setSavedReport(null);
     setCopyMessage("");
+    setIsCurrentReportUnlocked(false);
 
     const stepError = getStepError(3);
     if (stepError) {
@@ -229,7 +308,11 @@ export function MysticReportForm() {
     }
 
     const hasUsedFreeReport = getFreeReportUsage().count >= siteConfig.freeReportsPerUser;
+    const minimumGenerationRitual = new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 4300);
+    });
 
+    setGenerationStepIndex(0);
     setIsLoading(true);
 
     try {
@@ -246,7 +329,6 @@ export function MysticReportForm() {
       }
 
       const reportData = data as ReportResponse;
-      setReport(reportData);
 
       try {
         const saved = await saveReportWithCloudFallback({
@@ -276,6 +358,10 @@ export function MysticReportForm() {
           `已为你生成新的免费摘要。完整版深度解析 ${siteConfig.fullReportPriceLabel} 可扫码解锁。`,
         );
       }
+
+      await minimumGenerationRitual;
+      setGenerationStepIndex(generationStatusSteps.length - 1);
+      setReport(reportData);
       window.setTimeout(() => {
         reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
@@ -306,6 +392,16 @@ export function MysticReportForm() {
     setCopyMessage("免费摘要已复制。完整版内容需要解锁后查看。");
   }
 
+  function handleCurrentReportUnlock() {
+    if (savedReport) unlockReport(savedReport.id);
+    setIsCurrentReportUnlocked(true);
+    setShowPayment(false);
+    setCopyMessage("完整版已解锁。完整深度报告已在下方自动展开。");
+    window.setTimeout(() => {
+      reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
+
   const birthDays = Array.from(
     { length: getDaysInMonth(birthDateDraft.year, birthDateDraft.month) },
     (_, index) => index + 1,
@@ -314,6 +410,8 @@ export function MysticReportForm() {
   const unlockCountdown = `${String(Math.floor(unlockSeconds / 60)).padStart(2, "0")}:${String(
     unlockSeconds % 60,
   ).padStart(2, "0")}`;
+  const personaBadge = getPersonaBadge(form, report?.profile);
+  const dimensionScores = getDimensionScores(form, report?.profile);
 
   function getStepError(step: FormStep) {
     if (step >= 1) {
@@ -430,6 +528,7 @@ export function MysticReportForm() {
 
   return (
     <section
+      ref={sectionRef}
       id="report-form"
       className="w-full border border-[#d7aa55]/24 bg-[#101713]/94 p-5 text-[#f5efe2] shadow-2xl shadow-black/45 sm:p-6"
     >
@@ -439,10 +538,10 @@ export function MysticReportForm() {
             Self Insight Console
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl text-[#fff8ec]">
-            构建你的多维画像
+            开始生成你的四维人生画像
           </h2>
           <p className="mt-3 max-w-lg text-sm leading-7 text-[#cfc2ae]">
-            输入出生信息与 MBTI 倾向，系统会融合紫微、八字、星座、MBTI 四个维度，生成可继续追问的自我理解报告。
+            信息越具体，报告越像一次一对一咨询；不知道出生时间也可以生成，但八字与紫微精度会降低。
           </p>
         </div>
         <Link
@@ -486,7 +585,7 @@ export function MysticReportForm() {
         ))}
       </div>
 
-      <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
+      <form ref={formRef} className="mt-6 grid gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-2 sm:grid-cols-3">
           {formSteps.map(([number, title, desc], index) => {
             const step = (index + 1) as FormStep;
@@ -908,9 +1007,17 @@ export function MysticReportForm() {
         <div className="mt-4 border border-[#d7aa55]/20 bg-[#171f1b] p-4 text-sm leading-6 text-[#d8cdb9]">
           <p className="font-bold text-[#fff8ec]">正在生成你的四维报告</p>
           <p className="mt-2">内容较长时可能需要 10-30 秒，请不要重复点击。系统正在完成资料建模、四维融合和报告整理。</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            {["建模中", "融合中", "整理中"].map((step) => (
-              <div key={step} className="border border-[#d7aa55]/16 bg-[#0f1412] px-3 py-2 text-xs font-bold text-[#d7aa55]">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {generationStatusSteps.map((step, index) => (
+              <div
+                key={step}
+                className={`border px-3 py-2 text-xs font-bold transition ${
+                  index <= generationStepIndex
+                    ? "border-[#d7aa55]/40 bg-[#d7aa55] text-[#121714]"
+                    : "border-[#d7aa55]/16 bg-[#0f1412] text-[#d7aa55]"
+                }`}
+              >
+                <span className="mr-2 opacity-70">{String(index + 1).padStart(2, "0")}</span>
                 {step}
               </div>
             ))}
@@ -995,6 +1102,41 @@ export function MysticReportForm() {
             </p>
           </div>
           <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
+          <div className="mt-4 border border-[#d7aa55]/28 bg-[#121714] p-4 text-[#f5efe2]">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
+              专属画像徽章
+            </p>
+            <h4 className="mt-2 text-xl font-bold">{personaBadge.title}</h4>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {personaBadge.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="border border-[#d7aa55]/22 bg-[#d7aa55]/10 px-3 py-1 text-xs font-bold text-[#f2ddae]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {dimensionScores.map(([label, score]) => (
+                <div key={label} className="border border-[#d7aa55]/16 bg-[#0b100e] p-3">
+                  <div className="flex items-center justify-between gap-3 text-xs font-bold">
+                    <span className="text-[#f2ddae]">{label}</span>
+                    <span className="text-[#d7aa55]">{score}</span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden bg-[#2b241a]">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#d7aa55] via-[#f5df9b] to-[#8c6b2f]"
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-[#cfc2ae]">
+              这是根据本次输入生成的体验型四维指数，用于增强自我观察，不代表绝对结论。
+            </p>
+          </div>
           <div className="mt-5">
             <FreeSummaryReport
               input={form}
@@ -1003,10 +1145,62 @@ export function MysticReportForm() {
               onUnlock={() => setShowPayment(true)}
             />
           </div>
+          {isCurrentReportUnlocked ? (
+            <section className="mt-5 border border-[#d7aa55]/45 bg-[#fffaf2] p-5 text-[#121714]">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#9a563f]">
+                Full Report Unlocked
+              </p>
+              <h4 className="mt-3 font-[family-name:var(--font-display)] text-3xl">
+                完整深度报告已解锁
+              </h4>
+              <p className="mt-3 text-sm leading-7 text-[#62584b]">
+                以下为完整报告正文。建议截图保存，也可以进入详情页继续追问。
+              </p>
+              <div className="mt-5">
+                <ReportSectionCards report={report.report} variant="warm" />
+              </div>
+            </section>
+          ) : null}
           <p className="mt-5 text-xs text-[#69756f]">
-            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"} · 完整版倒计时 {unlockCountdown}
+            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"} · {isCurrentReportUnlocked ? "完整版已解锁" : `完整版倒计时 ${unlockCountdown}`}
           </p>
         </article>
+      ) : null}
+
+      {showMobileCta && !report ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#d7aa55]/35 bg-[#090b10]/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:hidden">
+          <button
+            type="button"
+            onClick={() => {
+              if (activeStep < 3) {
+                goNextStep();
+                return;
+              }
+              formRef.current?.requestSubmit();
+            }}
+            className="xj-cta flex h-12 w-full items-center justify-center bg-[#d7aa55] text-sm font-bold text-[#121714]"
+          >
+            生成我的免费摘要
+          </button>
+          <p className="mt-1 text-center text-[11px] text-[#d8cdb9]">
+            免费先看核心画像，完整版再解锁事业、财富与行动计划
+          </p>
+        </div>
+      ) : null}
+
+      {report && !isCurrentReportUnlocked ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#d7aa55]/35 bg-[#090b10]/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:hidden">
+          <button
+            type="button"
+            onClick={() => setShowPayment(true)}
+            className="xj-cta flex h-12 w-full items-center justify-center bg-[#d7aa55] text-sm font-bold text-[#121714]"
+          >
+            解锁完整版 ¥19.9 · 继续查看
+          </button>
+          <p className="mt-1 text-center text-[11px] text-[#d8cdb9]">
+            完整版含事业、财富、关系、未来一年与 30 天行动计划
+          </p>
+        </div>
       ) : null}
 
       {showPayment ? (
@@ -1017,6 +1211,7 @@ export function MysticReportForm() {
               ? "如果你正处在人生选择、事业转型、关系困惑或自我重建阶段，完整版更像是一份给自己的复盘报告。"
               : "免费生成次数已用完。支付后可继续生成完整版报告，并获得后续深度解析入口。"
           }
+          onUnlock={handleCurrentReportUnlock}
           onClose={() => setShowPayment(false)}
         />
       ) : null}

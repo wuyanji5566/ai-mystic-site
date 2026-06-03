@@ -65,7 +65,7 @@ export default function PricingPage() {
             <li>用户生成免费摘要报告。</li>
             <li>用户在页面内扫码支付 {siteConfig.fullReportPriceLabel}。</li>
             <li>用户备注昵称，必要时发送付款截图和报告链接。</li>
-            <li>客服确认后发送演示解锁码或人工标记订单。</li>
+            <li>用户点击“我已完成支付，生成完整报告”后自助打开完整版；异常订单由客服人工核对。</li>
           </ol>
         </div>
 

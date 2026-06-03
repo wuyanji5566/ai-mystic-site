@@ -116,8 +116,8 @@ export function AdminOrderPanel() {
     setMessage(successMessage);
   }
 
-  const paymentReminder = `请扫码支付 ${siteConfig.fullReportPriceLabel}，付款备注填写订单号：${form.id}。付款后把截图和报告链接发给客服微信 ${siteConfig.contactWeChat}，我会为你核对解锁。`;
-  const unlockReply = `你好，订单 ${form.id} 已核对。请打开你的报告链接，输入解锁码 ${siteConfig.unlockCode} 解锁完整版。如遇问题，直接把页面截图发给客服微信 ${siteConfig.contactWeChat}。`;
+  const paymentReminder = `请扫码支付 ${siteConfig.fullReportPriceLabel}，付款备注填写订单号：${form.id}。付款后回到报告页点击“我已完成支付，生成完整报告”即可继续查看；如遇问题，把截图和报告链接发给客服微信 ${siteConfig.contactWeChat}。`;
+  const unlockReply = `你好，订单 ${form.id} 已核对。请回到报告页点击“我已完成支付，生成完整报告”，系统会在当前浏览器打开完整版。如遇问题，直接把页面截图发给客服微信 ${siteConfig.contactWeChat}。`;
 
   return (
     <section className="mx-auto grid max-w-7xl gap-5 px-5 py-8 lg:grid-cols-[0.92fr_1.08fr]">
@@ -240,7 +240,7 @@ export function AdminOrderPanel() {
               value={form.note}
               onChange={(event) => updateForm("note", event.target.value)}
               className="resize-none border border-[#d7aa55]/26 bg-[#0f1412] px-3 py-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-              placeholder="例如：已收到截图，等待用户输入解锁码"
+              placeholder="例如：已收到截图，用户已自助打开完整版"
             />
           </label>
 

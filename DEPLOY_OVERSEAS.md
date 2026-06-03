@@ -1,27 +1,29 @@
 # 玄机命理会馆：海外上线方案
 
-目标：先用海外免费平台生成一个可公开访问的网址，让用户能直接在浏览器打开网站。
+目标：先用海外平台生成一个可公开访问的网址，让用户能直接在浏览器打开网站。
 
-## 推荐路线
+## 当前推荐路线
 
-第一选择：Netlify。
+第一选择：Render。
 
 原因：
 
-- 不需要先买服务器。
-- 可以先用免费二级域名。
-- 适合 Next.js MVP 演示和早期获客。
+- 当前 Netlify 团队额度已经超限，项目被暂停访问。
+- 本项目是 Next.js，并且包含 AI 报告生成接口，适合用 Render Web Service。
+- 不需要先买服务器，能先用 Render 免费二级域名。
 - 后续可以绑定正式域名。
 
-备用选择：Cloudflare Pages。
+备用选择：
 
-说明：Cloudflare Pages 的全球访问速度很好，但 Next.js 动态接口需要更多适配。当前项目有报告生成 API，第一阶段先用 Netlify 更省事。
+- Netlify：除非升级团队，否则暂时不能作为主站。
+- Cloudflare Pages：性能好，但 Next.js 动态接口需要更多适配，后续再考虑。
+- Vercel：Next.js 适配最好，但你之前被手机号验证卡住，暂不作为首选。
 
 ## 你需要准备
 
 ```text
 GitHub 账号：wuyanji5566
-Netlify 账号
+Render 账号
 DeepSeek API Key
 网站正式名称：玄机命理会馆
 客服微信：wuyanji
@@ -30,10 +32,10 @@ DeepSeek API Key
 
 ## 必须配置的环境变量
 
-在 Netlify 后台进入：
+在 Render 后台进入：
 
 ```text
-Site configuration -> Environment variables
+Service -> Environment
 ```
 
 添加：
@@ -42,36 +44,42 @@ Site configuration -> Environment variables
 OPENAI_API_KEY=你的 DeepSeek API Key
 OPENAI_BASE_URL=https://api.deepseek.com
 OPENAI_MODEL=deepseek-v4-flash
-NEXT_PUBLIC_APP_URL=部署成功后的 Netlify 网址
+NEXT_PUBLIC_APP_URL=部署成功后的 Render 网址
+NEXT_TELEMETRY_DISABLED=1
+```
+
+暂时没有 Supabase 时，可以先不填：
+
+```text
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 注意：
 
 - `OPENAI_API_KEY` 不能写进页面。
 - `.env.local` 只用于本地测试，不能提交到 GitHub。
-- 第一次部署前可以先不填 `NEXT_PUBLIC_APP_URL`，拿到正式网址后再补上并重新部署。
+- 第一次部署前可以先不填 `NEXT_PUBLIC_APP_URL`，拿到 Render 网址后再补上并重新部署。
 
-## Netlify 后台部署步骤
+## Render 后台部署步骤
 
-1. 打开 Netlify 官网并注册账号。
+1. 打开 Render 官网并注册账号。
 2. 用 GitHub 账号登录。
-3. 创建新站点，选择从 GitHub 导入。
-4. 选择 `ai-mystic-site` 仓库。
-5. 构建命令填写：
-
-```bash
-npm run build
-```
-
-6. 发布目录填写：
+3. 点击 `New +`。
+4. 优先选择 `Blueprint`，选择仓库 `wuyanji5566/ai-mystic-site`。
+5. Render 会读取项目根目录的 `render.yaml`。
+6. 如果你选择的是 `Web Service`，手动填写：
 
 ```text
-.next
+Runtime: Node
+Build Command: npm ci && npm run build
+Start Command: npm run start
 ```
 
 7. 添加环境变量。
 8. 点击 Deploy。
-9. 部署成功后，打开 Netlify 给你的免费网址。
+9. 部署成功后，打开 Render 给你的免费网址。
+10. 回到 Environment，把 `NEXT_PUBLIC_APP_URL` 改成 Render 网址，再重新部署一次。
 
 ## 本地命令验证
 
@@ -84,33 +92,6 @@ npm.cmd run build
 ```
 
 两个命令都通过，再部署。
-
-## CLI 部署方式
-
-如果你已经登录 Netlify，也可以用命令部署：
-
-```bash
-cd D:\项目文件夹\作品集\ai-mystic-site
-$env:npm_config_cache='D:\项目文件夹\作品集\ai-mystic-site\.npm-cache'
-$env:XDG_CONFIG_HOME='D:\项目文件夹\作品集\ai-mystic-site\.netlify-config'
-$env:APPDATA='D:\项目文件夹\作品集\ai-mystic-site\.netlify-appdata'
-npx.cmd netlify-cli@latest status
-npx.cmd netlify-cli@latest deploy --build
-```
-
-确认预览站点没问题后，再发布正式版：
-
-```bash
-npx.cmd netlify-cli@latest deploy --build --prod
-```
-
-如果提示没有登录，先运行：
-
-```bash
-npx.cmd netlify-cli@latest login
-```
-
-这个命令会打开浏览器，需要你自己完成 Netlify 登录授权。
 
 ## 上线后检查
 
@@ -130,35 +111,27 @@ npx.cmd netlify-cli@latest login
 ```text
 1. 首页填写资料。
 2. 生成一份报告。
-3. 打开报告详情页。
-4. 继续追问一次。
-5. 尝试点击价格页和人工收款说明。
+3. 点击解锁完整版。
+4. 点击“我已完成支付，生成完整报告”。
+5. 确认完整报告能展开。
+6. 打开报告详情页。
+7. 继续追问一次。
 ```
 
 ## 搜索引擎收录
 
 网站上线后，还需要做这些事：
 
-```text
-1. Google Search Console 添加网站。
-2. 提交 /sitemap.xml。
-3. Bing Webmaster 添加网站。
-4. 提交 /sitemap.xml。
-5. 等待搜索引擎抓取。
-```
-
-说明：搜索引擎不会保证立刻收录。免费二级域名也能测试收录，但正式做品牌时建议购买独立域名。
-
-## 后续升级顺序
-
-建议不要一次性做太复杂，按这个顺序来：
+1. 注册 Google Search Console。
+2. 添加 Render 网址或正式域名。
+3. 提交：
 
 ```text
-1. 海外部署公开网址。
-2. 接 Supabase，保存真实用户报告。
-3. 做登录注册。
-4. 做管理员后台，方便人工查看订单和解锁。
-5. 接微信支付或支付宝。
-6. 购买域名并绑定。
-7. 做更多 SEO 页面和内容文章。
+/sitemap.xml
 ```
+
+4. 注册 Bing Webmaster。
+5. 提交同一个 sitemap。
+6. 等待搜索引擎收录。
+
+部署成功只是“网站可访问”，搜索到还需要一点时间。

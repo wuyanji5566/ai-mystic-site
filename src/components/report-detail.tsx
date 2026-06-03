@@ -37,7 +37,6 @@ const followupPresets = [
 export function ReportDetail({ reportId }: { reportId: string }) {
   const [report, setReport] = useState<SavedMysticReport | null>(null);
   const [storageMode, setStorageMode] = useState<ReportStorageMode>("local");
-  const [unlockCode, setUnlockCode] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [copyMessage, setCopyMessage] = useState("");
@@ -83,15 +82,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   function handleUnlock() {
     if (!report) return;
 
-    if (unlockCode.trim() === siteConfig.unlockCode) {
-      unlockReport(report.id);
-      setIsUnlocked(true);
-      setCopyMessage("完整版已解锁。真实上线后这里会升级为微信支付或支付宝自动回调。");
-      setShowPayment(false);
-      return;
-    }
-
-    setCopyMessage(`解锁码不正确。请添加客服微信 ${siteConfig.contactWeChat} 处理人工解锁。`);
+    unlockReport(report.id);
+    setIsUnlocked(true);
+    setCopyMessage("完整版已解锁。完整报告和继续追问入口已打开。");
+    setShowPayment(false);
   }
 
   async function handleFollowup(question = followupQuestion) {
@@ -249,8 +243,6 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             <div className="mt-4">
               <PaymentUnlockPanel
                 compact
-                unlockCode={unlockCode}
-                onUnlockCodeChange={setUnlockCode}
                 onUnlock={handleUnlock}
               />
             </div>
@@ -397,8 +389,6 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
       {showPayment ? (
         <PaymentUnlockPanel
-          unlockCode={unlockCode}
-          onUnlockCodeChange={setUnlockCode}
           onUnlock={handleUnlock}
           onClose={() => setShowPayment(false)}
         />

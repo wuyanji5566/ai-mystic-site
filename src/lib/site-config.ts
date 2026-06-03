@@ -8,7 +8,6 @@ export const siteConfig = {
   fullReportPriceLabel: "19.9 元",
   freeReportsPerUser: 1,
   targetMarket: "国内与海外用户",
-  unlockCode: "MYSTIC2026",
   wechatPayQrPath: "/payments/wechat-pay.jpg",
   paymentMethods: ["人工微信收款", "微信支付", "支付宝"],
 };

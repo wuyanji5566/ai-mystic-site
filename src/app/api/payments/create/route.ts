@@ -1,9 +1,9 @@
 export async function POST() {
   return Response.json({
     mode: "demo",
-    unlockCode: "MYSTIC2026",
+    unlockMode: "self_service",
     message:
-      "当前是演示支付接口。真实上线时这里需要接微信支付、支付宝或 Stripe，并在支付成功回调后解锁报告。",
+      "当前是 MVP 演示支付接口。扫码付款后由用户点击确认按钮自助打开完整版；真实上线时这里需要接微信支付、支付宝或 Stripe，并在支付成功回调后解锁报告。",
     requiredKeys: [
       "STRIPE_SECRET_KEY",
       "STRIPE_PRICE_ID",
