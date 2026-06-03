@@ -33,6 +33,19 @@ body {
   font-family: var(--font-body);
 }
 
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(circle at 12% 18%, rgba(215, 170, 85, 0.16), transparent 24%),
+    radial-gradient(circle at 78% 8%, rgba(124, 72, 214, 0.14), transparent 28%),
+    radial-gradient(circle at 82% 78%, rgba(47, 156, 137, 0.12), transparent 26%);
+  filter: saturate(1.08);
+}
+
 button,
 input,
 select,
@@ -43,4 +56,81 @@ textarea {
 ::selection {
   background: #d7aa55;
   color: #121714;
+}
+
+@keyframes xj-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes xj-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(0, -16px, 0);
+    opacity: 0.95;
+  }
+}
+
+@keyframes xj-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(130%);
+  }
+}
+
+.xj-glass {
+  background:
+    linear-gradient(135deg, rgba(255, 248, 236, 0.08), rgba(255, 248, 236, 0.025)),
+    rgba(12, 16, 18, 0.78);
+  border: 1px solid rgba(215, 170, 85, 0.22);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px);
+}
+
+.xj-cta {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(215, 170, 85, 0.22);
+}
+
+.xj-cta::after {
+  position: absolute;
+  inset: -80% auto -80% -40%;
+  width: 38%;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: rotate(18deg);
+  transition: left 0.7s ease;
+}
+
+.xj-cta:hover::after {
+  left: 118%;
+}
+
+.xj-orbit {
+  animation: xj-orbit 42s linear infinite;
+}
+
+.xj-drift {
+  animation: xj-drift 5.4s ease-in-out infinite;
+}
+
+.xj-scan::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(180deg, transparent, rgba(215, 170, 85, 0.18), transparent);
+  animation: xj-scan 4.8s linear infinite;
 }
