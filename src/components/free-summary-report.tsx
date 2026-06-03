@@ -10,11 +10,12 @@ type FreeSummaryReportProps = {
 };
 
 const lockedItems = [
-  "你的事业真正适合走哪条路",
-  "你的财富增长方式和容易踩的坑",
-  "你在亲密关系中的真实需求",
+  "你的事业定位与适合赛道",
+  "你的财富增长方式与副业方向",
+  "你的亲密关系风险点",
   "你未来一年最关键的阶段提醒",
-  "你接下来 30 天的行动计划",
+  "你未来 30 天最该做的 3 件事",
+  "针对你的继续追问入口",
 ];
 
 const fullReportItems = [
@@ -27,15 +28,15 @@ const fullReportItems = [
 ];
 
 const comparison = {
-  free: ["核心人格摘要", "事业大方向", "关系提醒", "一个初步行动建议"],
+  free: ["核心人格画像", "四维系统初步判断", "事业大方向", "关系提醒", "一个初步建议"],
   paid: [
-    "四维交叉人格画像",
-    "事业定位与适合环境",
-    "财富模式与副业方向",
-    "亲密关系深层模式",
-    "未来一年阶段节奏",
-    "未来 30 天行动计划",
-    "可截图保存版总结",
+    "四维交叉深度分析",
+    "事业定位",
+    "财富模式",
+    "关系风险",
+    "未来一年节奏",
+    "30 天行动计划",
+    "截图保存版",
     "继续追问入口",
   ],
 };
@@ -56,7 +57,11 @@ function findSection(report: string, keywords: string[]) {
 
 export function FreeSummaryReport({ input, profile, report, onUnlock }: FreeSummaryReportProps) {
   const profileSection = findSection(report, ["核心", "画像", "性格"]);
-  const careerSection = findSection(report, ["事业", "副业", "定位"]);
+  const baziSection = findSection(report, ["八字", "节律"]);
+  const ziweiSection = findSection(report, ["紫微", "结构"]);
+  const astroSection = findSection(report, ["星座", "情绪"]);
+  const mbtiSection = findSection(report, ["MBTI", "行为"]);
+  const crossSection = findSection(report, ["四维", "交叉"]);
   const relationSection = findSection(report, ["关系", "感情", "亲密"]);
   const actionSection = findSection(report, ["行动", "30 天", "提醒"]);
 
@@ -66,12 +71,24 @@ export function FreeSummaryReport({ input, profile, report, onUnlock }: FreeSumm
   const stuckText =
     actionSection?.body ||
     "你最大的问题不是不努力，而是容易想得很深，却迟迟没有形成稳定的外部作品、收入结构或关系反馈。";
-  const careerText =
-    careerSection?.body ||
-    "你适合的事业能量更偏向长期积累、系统判断和可复用能力建设。";
   const relationText =
     relationSection?.body ||
     "你表面理性，但内在对安全感、尊重感和被理解感要求很高。";
+  const baziText =
+    baziSection?.body ||
+    "基于出生信息的节律型分析会更关注你的行动节奏、财富倾向、压力模式和长期运势节律。当前版本不假装完整精确排盘，会把它作为现实节奏参考。";
+  const ziweiText =
+    ziweiSection?.body ||
+    "紫微更像一张人生结构图。当前版本不编造具体星曜落宫，而是从事业位置、关系模式、资源流动和阶段课题做结构化倾向分析。";
+  const astroText =
+    astroSection?.body ||
+    "星座看到的是你的情绪表达、亲密关系需求、外在呈现和压力下的反应，它能解释你为什么在某些关系里格外在意被理解。";
+  const mbtiText =
+    mbtiSection?.body ||
+    "MBTI 更像行为说明书，用来观察你的决策方式、信息处理、沟通方式、执行习惯和适合环境。";
+  const crossText =
+    crossSection?.body ||
+    "四维交叉后真正重要的是：你的优势如何形成、卡点为什么反复出现、适合什么事业环境、关系里最需要什么、赚钱时最要避开什么。";
 
   return (
     <div className="grid gap-4">
@@ -96,19 +113,29 @@ export function FreeSummaryReport({ input, profile, report, onUnlock }: FreeSumm
         <div className="mt-5 grid gap-3">
           <section className="border border-[#d7aa55]/24 bg-[#121714] p-4">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-              你最核心的底层模式
+              你的底层人格模式
             </p>
             <p className="mt-3 text-lg font-bold leading-8 text-[#fff8ec]">
-              你不是没有能力，而是经常在
-              <span className="text-[#d7aa55]">“想得深、判断细”</span>
-              和
-              <span className="text-[#d7aa55]">“落地慢、反馈少”</span>
-              之间反复拉扯。
+              你不是简单的 {input.mbtiType}，也不是单一命理标签。你的四维画像显示：你更像是一个
+              <span className="text-[#d7aa55]">“高敏感、重判断、需要系统承接的人”</span>，
+              你真正的优势在于深度判断，但最容易被卡住的地方是想得很深、现实反馈太慢。
             </p>
           </section>
 
+          {[
+            ["八字看到的是你的底层节律", baziText],
+            ["紫微看到的是你的人生结构", ziweiText],
+            ["星座看到的是你的情绪能量", astroText],
+            ["MBTI看到的是你的行为模式", mbtiText],
+          ].map(([title, body]) => (
+            <section key={title} className="border border-[#f5efe2]/10 bg-[#10151b] p-4">
+              <h5 className="text-base font-bold text-[#fff8ec]">{title}</h5>
+              <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">{compactText(body, 176)}</p>
+            </section>
+          ))}
+
           <div className="grid gap-3 md:grid-cols-2">
-            <section className="border border-[#f5efe2]/10 bg-[#10151b] p-4">
+            <section className="border border-[#d7aa55]/18 bg-[#111018] p-4">
               <h5 className="text-base font-bold text-[#fff8ec]">你身上最容易被低估的优势</h5>
               <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">{compactText(strengthText, 154)}</p>
             </section>
@@ -120,9 +147,9 @@ export function FreeSummaryReport({ input, profile, report, onUnlock }: FreeSumm
 
           <div className="grid gap-3 md:grid-cols-2">
             <section className="border border-[#d7aa55]/18 bg-[#111018] p-4">
-              <h5 className="text-base font-bold text-[#fff8ec]">你适合的事业能量</h5>
+              <h5 className="text-base font-bold text-[#fff8ec]">四维交叉后，真正重要的是这一点</h5>
               <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">
-                {compactText(careerText, 132)}
+                {compactText(crossText, 170)}
                 <span className="mt-3 block font-bold text-[#d7aa55]">
                   但你具体适合走内容型、咨询型、管理型、技术型，还是资源整合型，需要结合完整命盘和人格组合继续判断。
                 </span>
@@ -145,12 +172,13 @@ export function FreeSummaryReport({ input, profile, report, onUnlock }: FreeSumm
         <div className="absolute inset-0 opacity-35 blur-[1px] [background-image:linear-gradient(90deg,rgba(215,170,85,0.22)_1px,transparent_1px),linear-gradient(180deg,rgba(155,124,255,0.13)_1px,transparent_1px)] [background-size:34px_34px]" />
         <div className="relative">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7aa55]">
-            Locked Full Report
+            LOCKED FULL REPORT
           </p>
-          <h4 className="mt-3 text-2xl font-bold">完整版会继续告诉你什么</h4>
+          <h4 className="mt-3 text-2xl font-bold">你的完整版报告已生成，但以下关键内容尚未解锁</h4>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {fullReportItems.map((item) => (
               <p key={item} className="border border-[#d7aa55]/18 bg-black/30 px-4 py-3 text-sm font-bold text-[#fff8ec]">
+                <span className="mr-2 text-[#d7aa55]">LOCK</span>
                 {item}
               </p>
             ))}

@@ -88,6 +88,46 @@ textarea {
   }
 }
 
+@keyframes xj-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(215, 170, 85, 0);
+  }
+  50% {
+    box-shadow: 0 0 42px rgba(215, 170, 85, 0.28);
+  }
+}
+
+@keyframes xj-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes xj-particles {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 120px -180px, -160px 120px;
+  }
+}
+
+@keyframes xj-nebula {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, -14px, 0) scale(1.04);
+  }
+}
+
 .xj-glass {
   background:
     linear-gradient(135deg, rgba(255, 248, 236, 0.08), rgba(255, 248, 236, 0.025)),
@@ -119,6 +159,10 @@ textarea {
   left: 118%;
 }
 
+.xj-cta {
+  animation: xj-pulse 4.6s ease-in-out infinite;
+}
+
 .xj-orbit {
   animation: xj-orbit 42s linear infinite;
 }
@@ -133,4 +177,46 @@ textarea {
   content: "";
   background: linear-gradient(180deg, transparent, rgba(215, 170, 85, 0.18), transparent);
   animation: xj-scan 4.8s linear infinite;
+}
+
+.xj-reveal {
+  animation: xj-reveal 0.7s ease both;
+}
+
+.xj-nebula {
+  animation: xj-nebula 11s ease-in-out infinite;
+}
+
+.xj-particle-field {
+  background-image:
+    radial-gradient(circle, rgba(215, 170, 85, 0.42) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(155, 124, 255, 0.28) 1px, transparent 1.4px);
+  background-position: 0 0, 28px 18px;
+  background-size: 72px 72px, 92px 92px;
+  animation: xj-particles 18s linear infinite;
+}
+
+.xj-card-hover {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.xj-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(215, 170, 85, 0.58);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xj-orbit,
+  .xj-drift,
+  .xj-scan::before,
+  .xj-cta,
+  .xj-reveal,
+  .xj-nebula,
+  .xj-particle-field {
+    animation: none;
+  }
 }

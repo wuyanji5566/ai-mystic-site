@@ -40,32 +40,49 @@ const initialForm: MysticInput = {
   focus: "事业方向和未来一年建议",
 };
 
-const focusPresets = ["事业方向", "亲密关系", "财富习惯", "人生定位", "MBTI 调整"];
+const focusPresets = [
+  "事业",
+  "财富",
+  "感情",
+  "婚姻",
+  "健康",
+  "人生方向",
+  "副业",
+  "转型",
+  "亲子",
+  "家庭",
+];
 
 const reportIntentPresets = [
   {
-    title: "深度咨询版",
-    desc: "适合想全面了解自己，重点看人格、事业、关系和长期节奏。",
+    title: "自我探索",
+    desc: "适合想看懂性格底色、内在优势和反复卡住的模式。",
     focus:
-      "请按深度咨询报告方式分析我，重点拆解核心人格、事业定位、关系模式、财富习惯、未来一年阶段提醒，并给出可执行建议。",
+      "请按自我探索方式分析我，重点拆解核心人格、底层模式、长期优势、反复卡点和未来 30 天调整建议。",
   },
   {
-    title: "30 天行动版",
-    desc: "适合已经有困惑，想把报告变成短期行动计划。",
+    title: "事业规划",
+    desc: "适合重点看职业定位、适合环境、转型方向和副业路径。",
     focus:
-      "请重点分析我当前最适合优先处理的问题，并生成未来 30 天行动计划，包含每周任务、执行提醒、容易放弃的原因和调整方式。",
+      "请重点分析我的事业定位、适合赛道、工作环境、转型方向、副业路径，以及未来 30 天可执行动作。",
   },
   {
-    title: "事业副业版",
-    desc: "适合重点看工作定位、变现方向、副业节奏和能力补齐。",
+    title: "感情分析",
+    desc: "适合看亲密关系、沟通模式、安全感和关系风险点。",
     focus:
-      "请重点分析事业定位、副业方向、适合的工作环境、不适合的合作模式、财富节奏，以及未来三个月可以做的具体动作。",
+      "请重点分析我的亲密关系模式、沟通方式、安全感需求、边界感、关系风险点和未来 30 天关系调整建议。",
   },
   {
-    title: "关系复盘版",
-    desc: "适合重点看亲密关系、人际边界、情绪触发和沟通方式。",
+    title: "年度复盘",
+    desc: "适合看未来一年节奏、阶段机会、风险提醒和行动重点。",
     focus:
-      "请重点分析亲密关系和人际关系模式，包括沟通方式、边界感、情绪触发点、适合的相处方式和未来 30 天可练习的关系行动。",
+      "请重点分析我未来一年的阶段节奏、关键机会、容易错过的风险、财富与关系提醒，以及每个阶段的行动重点。",
+  },
+  {
+    title: "咨询预览",
+    desc: "适合付费咨询前，先快速看自己最值得深入的问题。",
+    focus:
+      "请按付费咨询前预览方式分析我，指出我当前最值得深入的问题、最核心的卡点、适合追问的方向和 30 天初步行动。",
   },
 ];
 
@@ -159,6 +176,7 @@ export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
   const [activeStep, setActiveStep] = useState<FormStep>(1);
   const [selectedIntent, setSelectedIntent] = useState(reportIntentPresets[0].title);
+  const [selectedFocusTags, setSelectedFocusTags] = useState<string[]>([]);
   const [birthDateDraft, setBirthDateDraft] = useState(() => splitBirthDate(initialForm.birthDate));
   const [birthTimeDraft, setBirthTimeDraft] = useState(() => splitBirthTime(initialForm.birthTime));
   const [birthTimeMode, setBirthTimeMode] =
@@ -359,7 +377,7 @@ export function MysticReportForm() {
       setForm({
         ...form,
         birthTime: "12:00",
-        birthTimeNote: "用户不确定具体出生时间，系统按中午 12:00 做宽泛参考",
+        birthTimeNote: "用户不确定具体出生时间，仍可生成报告，但紫微和八字精度会降低",
       });
       return;
     }
@@ -394,6 +412,20 @@ export function MysticReportForm() {
       birthTime: time,
       birthTimeNote: `用户按传统时辰选择了${label}（${range}），系统取该时辰代表时间做参考`,
     });
+  }
+
+  function toggleFocusTag(tag: string) {
+    const nextTags = selectedFocusTags.includes(tag)
+      ? selectedFocusTags.filter((item) => item !== tag)
+      : [...selectedFocusTags, tag];
+    setSelectedFocusTags(nextTags);
+
+    if (nextTags.length) {
+      setForm({
+        ...form,
+        focus: `我想重点看：${nextTags.join("、")}。请结合我的出生信息、MBTI 和当前状态，生成具体分析与行动建议。`,
+      });
+    }
   }
 
   return (
@@ -655,7 +687,7 @@ export function MysticReportForm() {
 
                 {birthTimeMode === "unknown" ? (
                   <p className="border border-[#d7aa55]/18 bg-[#0f1412] px-3 py-2 text-xs font-normal leading-5 text-[#cfc2ae]">
-                    不知道具体时间也可以生成。报告会减少对时辰的判断，更多按生日、年份、星座和 MBTI 做宽泛分析。
+                    不知道具体时间仍可生成报告，但紫微和八字精度会降低；系统会更多结合生日、年份、星座和 MBTI 做结构化分析。
                   </p>
                 ) : null}
               </div>
@@ -737,7 +769,9 @@ export function MysticReportForm() {
                   className={inputClass}
                 >
                   {mbtiTypes.map((type) => (
-                    <option key={type}>{type}</option>
+                    <option key={type} value={type}>
+                      {type === "不确定" ? "不知道，系统根据描述推测" : type}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -790,8 +824,12 @@ export function MysticReportForm() {
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => setForm({ ...form, focus: `${preset}与未来 30 天行动建议` })}
-                  className="border border-[#f5efe2]/12 px-3 py-2 text-xs font-semibold text-[#cfc2ae] transition hover:border-[#2f9c89] hover:text-[#aef2dd]"
+                  onClick={() => toggleFocusTag(preset)}
+                  className={`border px-3 py-2 text-xs font-semibold transition ${
+                    selectedFocusTags.includes(preset)
+                      ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
+                      : "border-[#f5efe2]/12 text-[#cfc2ae] hover:border-[#2f9c89] hover:text-[#aef2dd]"
+                  }`}
                 >
                   {preset}
                 </button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FourDimensionalEngine } from "@/components/four-dimensional-engine";
 import { MysticReportForm } from "@/components/mystic-report-form";
 import { siteConfig } from "@/lib/site-config";
 
@@ -10,10 +11,16 @@ const navLinks = [
 ];
 
 const dimensions = [
-  ["紫微", "看长期课题", "人生阶段、关系位置、事业节奏"],
-  ["八字", "看底层节律", "出生时间、年份气质、行动节奏"],
-  ["星座", "看表达能量", "情绪反应、关系表达、外在呈现"],
-  ["MBTI", "看行为模式", "决策偏好、压力反应、沟通风格"],
+  ["八字", "看你的底层能量、行动节奏、财富倾向、长期运势节律。"],
+  ["紫微", "看你的事业结构、人生阶段、关系位置、资源流动与关键课题。"],
+  ["星座", "看你的情绪表达、亲密关系需求、外在吸引力与压力反应。"],
+  ["MBTI", "看你的决策偏好、沟通方式、执行模式、适合环境与成长路径。"],
+];
+
+const decodeCards = [
+  ["传统命理", "看人生节律", "从八字与紫微里提取长期节奏、资源位置和阶段课题。"],
+  ["人格模型", "看行为模式", "用星座与 MBTI 理解决策偏好、压力反应和适合环境。"],
+  ["AI 推理", "生成现实建议", "把命理符号翻译成事业、财富、关系和行动建议。"],
 ];
 
 const reportModules = [
@@ -33,7 +40,13 @@ const previewSections = [
   ["可分享", "报告页保留截图友好的卡片结构，方便保存、复盘或发给朋友讨论。"],
 ];
 
-const exampleLockedItems = ["适合的事业环境", "赚钱方式", "关系风险点", "30 天行动方案"];
+const exampleLockedItems = [
+  "你的事业最佳路径",
+  "你的财富增长模式",
+  "你最容易错过的机会",
+  "你的亲密关系隐藏模式",
+  "未来 30 天行动计划",
+];
 
 const testimonials = [
   ["像老师在帮我拆自己", "不是只说我是什么性格，而是说出了我为什么总是想太多、落地慢。"],
@@ -43,44 +56,17 @@ const testimonials = [
 
 const trustItems = [
   ["隐私说明", "当前 MVP 不强制注册；报告会优先保存在你的浏览器或已配置的云端存储中。"],
-  ["内容边界", "报告用于娱乐、自我探索和复盘，不替代医疗、法律、投资、婚恋等现实决策。"],
+  ["内容边界", "本报告用于自我探索、认知复盘与成长参考，不替代医疗、法律、投资、婚恋等专业决策。"],
   ["付款方式", `完整版 ${siteConfig.fullReportPriceLabel}，当前先用微信收款码和订单号人工核对。`],
 ];
-
-function AstroScene() {
-  return (
-    <div className="relative min-h-[360px] overflow-hidden border border-[#d7aa55]/24 bg-[#080b10]/72 p-5 shadow-2xl shadow-black/40">
-      <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle,rgba(215,170,85,0.32)_1px,transparent_1px)] [background-size:22px_22px]" />
-      <div className="xj-scan absolute inset-0 opacity-70" />
-      <div className="xj-orbit absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d7aa55]/35">
-        <div className="absolute -right-2 top-1/2 h-4 w-4 rounded-full bg-[#d7aa55] shadow-[0_0_30px_rgba(215,170,85,0.9)]" />
-        <div className="absolute left-8 top-7 h-2 w-2 rounded-full bg-[#9b7cff] shadow-[0_0_20px_rgba(155,124,255,0.8)]" />
-      </div>
-      <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#7c48d6]/38" />
-      <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-[#2f9c89]/48" />
-      <div className="relative z-10 flex h-full flex-col justify-between">
-        <div className="ml-auto w-fit border border-[#d7aa55]/28 bg-black/35 px-3 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#d7aa55]">
-          Live Report Engine
-        </div>
-        <div className="mt-48 max-w-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#9b7cff]">
-            Zi Wei · Ba Zi · Star · MBTI
-          </p>
-          <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl leading-tight text-[#fff8ec]">
-            从命理符号里，提炼能落地的人生说明书。
-          </h2>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#090b10] text-[#f5efe2]">
       <section className="relative min-h-screen border-b border-[#d7aa55]/20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_15%,rgba(215,170,85,0.20),transparent_25%),radial-gradient(circle_at_78%_18%,rgba(124,72,214,0.22),transparent_24%),linear-gradient(180deg,rgba(9,11,16,0.15),#090b10_92%)]" />
+        <div className="xj-nebula absolute inset-0 bg-[radial-gradient(circle_at_12%_15%,rgba(215,170,85,0.20),transparent_25%),radial-gradient(circle_at_78%_18%,rgba(124,72,214,0.22),transparent_24%),linear-gradient(180deg,rgba(9,11,16,0.15),#090b10_92%)]" />
         <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(90deg,rgba(215,170,85,0.16)_1px,transparent_1px),linear-gradient(180deg,rgba(155,124,255,0.10)_1px,transparent_1px)] [background-size:64px_64px]" />
+        <div className="xj-particle-field absolute inset-0 opacity-25" />
 
         <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-5 py-6 sm:px-8 lg:px-10">
           <nav className="flex flex-col gap-4 border-b border-[#f5efe2]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
@@ -108,36 +94,42 @@ export default function Home() {
           <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[0.92fr_1.08fr]">
             <div>
               <div className="mb-6 inline-flex border border-[#d7aa55]/35 bg-[#17121f]/70 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#d7aa55]">
-                免费摘要 · 完整版解锁 · 深度追问
+                AI Personal Destiny Operating System
               </div>
               <h1 className="max-w-3xl font-[family-name:var(--font-display)] text-5xl leading-[1.02] text-[#fff8ec] sm:text-6xl lg:text-7xl">
-                你不是缺答案，你是缺一份看懂自己的底层说明书。
+                你不是缺努力，你只是从未真正看懂自己。
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8cdb9] sm:text-lg">
-                输入出生信息、MBTI 和当前关注方向，系统会融合紫微、八字、星座与人格模型，生成一份关于你性格底色、事业方向、财富节奏、关系模式和未来行动的个人报告。免费先看核心摘要，完整版解锁深度分析与30天行动方案。
+                融合八字底层节律、紫微人生结构、星座情绪能量、MBTI行为模式，生成一份关于性格底色、事业路径、财富节奏、关系模式和未来行动的人生底层说明书。
               </p>
               <p className="mt-4 max-w-2xl border-l-2 border-[#d7aa55] pl-4 text-sm leading-7 text-[#f2ddae]">
-                这不是“神秘预言”，而是一次把传统命理、人格模型和现实行动结合起来的自我复盘。
+                这不是传统算命，也不是普通性格测试，而是一套将东方命理、西方人格模型与 AI 推理结合的个人认知系统。
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="#report-form"
                   className="xj-cta inline-flex h-13 items-center justify-center bg-[#d7aa55] px-7 text-sm font-bold text-[#121714] transition hover:-translate-y-0.5 hover:bg-[#f0c86c]"
                 >
-                  生成我的报告 →
+                  立即解码我的人生
+                </a>
+                <a
+                  href="#report-form"
+                  className="inline-flex h-13 items-center justify-center border border-[#d7aa55]/30 bg-[#d7aa55]/10 px-7 text-sm font-bold text-[#f2ddae] transition hover:-translate-y-0.5 hover:border-[#d7aa55]"
+                >
+                  生成我的人生说明书
                 </a>
                 <Link
                   href="/examples"
                   className="inline-flex h-13 items-center justify-center border border-[#f5efe2]/18 bg-white/5 px-7 text-sm font-bold text-[#fff8ec] transition hover:-translate-y-0.5 hover:border-[#9b7cff] hover:text-[#d9ccff]"
                 >
-                  查看示例报告
+                  查看我的四维画像
                 </Link>
               </div>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-4">
-                {dimensions.map(([title, tag, desc]) => (
+                {dimensions.map(([title, desc]) => (
                   <article key={title} className="xj-glass p-4">
-                    <p className="text-xs font-bold text-[#d7aa55]">{tag}</p>
+                    <p className="text-xs font-bold text-[#d7aa55]">四维人格命运引擎</p>
                     <p className="mt-2 text-sm font-bold text-[#fff8ec]">{title}</p>
                     <p className="mt-2 text-xs leading-5 text-[#c7baa6]">{desc}</p>
                   </article>
@@ -146,9 +138,55 @@ export default function Home() {
             </div>
 
             <div className="grid gap-5">
-              <AstroScene />
+              <FourDimensionalEngine />
               <MysticReportForm />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#d7aa55]/18 bg-[#0d0d14]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:px-10">
+          <div className="xj-reveal">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
+              Decode System
+            </p>
+            <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
+              不是算命，是一次 AI 人生解码。
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-[#cfc2ae]">
+              系统不会告诉你“命中注定”，而是把命理结构、人格模型和现实行动放在同一张图里交叉验证。
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {decodeCards.map(([title, tag, desc], index) => (
+              <article key={title} className="xj-glass xj-card-hover p-5" style={{ animationDelay: `${index * 90}ms` }}>
+                <p className="text-xs font-bold text-[#d7aa55]">{tag}</p>
+                <h3 className="mt-4 text-xl font-bold text-[#fff8ec]">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">{desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#d7aa55]/18 bg-[#090b10]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.7fr_1.3fr] lg:px-10">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
+              Four-Lens Engine
+            </p>
+            <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
+              四套系统，不是简单叠加，而是交叉验证。
+            </h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {dimensions.map(([title, desc]) => (
+              <article key={title} className="xj-glass xj-card-hover p-5">
+                <h3 className="text-2xl font-bold text-[#fff8ec]">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">{desc}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -160,10 +198,10 @@ export default function Home() {
               Sample Screenshot
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight">
-              示例：一个 INTJ 型用户的四维画像
+              示例：一个高敏感理性型用户的四维画像
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#52615b]">
-              “你不是缺想法，而是缺一个能长期承接你想法的现实系统。你适合在复杂信息、长期判断和系统构建中建立优势，但不适合长期做重复、低自主权、强情绪消耗的工作。”
+              你不是没有能力，而是长期卡在“想得很深”和“现实反馈太慢”之间。你适合处理复杂信息、长期判断、系统搭建与深度表达，但不适合长期待在低自主权、强消耗、重复执行的环境里。
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
@@ -171,9 +209,9 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8b2732]">
                 示例报告截图
               </p>
-              <h3 className="mt-3 text-2xl font-bold">INTJ 四维交叉画像</h3>
+              <h3 className="mt-3 text-2xl font-bold">高敏感理性型四维画像</h3>
               <p className="mt-3 border border-[#121714]/10 bg-[#fffaf2] p-4 text-sm leading-7 text-[#52615b]">
-                你不是缺想法，而是缺一个能长期承接你想法的现实系统。你适合在复杂信息、长期判断和系统构建中建立优势，但不适合长期做重复、低自主权、强情绪消耗的工作。
+                你真正需要的不是更多建议，而是一套能让你稳定输出、稳定变现、稳定建立关系反馈的现实系统。
               </p>
               <div className="mt-5 grid gap-3">
                 {previewSections.map(([title, body]) => (
@@ -213,11 +251,25 @@ export default function Home() {
               Unlock Value
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
-              完整深度报告 · 限时体验价 19.9 元
+              完整报告的价值，不是告诉你命运，而是帮你看懂下一步。
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#d8cdb9]">
               如果你只是想随便测一测，免费摘要已经够了。但如果你正处在人生选择、事业转型、关系困惑或自我重建阶段，完整版更像是一份给自己的复盘报告。
             </p>
+            <div className="mt-6 border border-[#d7aa55]/35 bg-[#121714] p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
+                完整深度报告 · 限时体验价 ¥19.9
+              </p>
+              <a
+                href="#report-form"
+                className="xj-cta mt-4 inline-flex h-12 w-full items-center justify-center bg-[#d7aa55] px-5 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c]"
+              >
+                解锁我的完整人生报告 ¥19.9
+              </a>
+              <p className="mt-3 text-center text-xs leading-5 text-[#cfc2ae]">
+                一次解锁，适合截图保存、反复复盘、继续追问。
+              </p>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {reportModules.map((item, index) => (
