@@ -1,27 +1,27 @@
 import Link from "next/link";
-import { legalLinks, privacySections, standardDisclaimer } from "@/lib/legal-copy";
+import { legalLinks, standardDisclaimer, termsSections } from "@/lib/legal-copy";
 import { siteConfig } from "@/lib/site-config";
 
-export default function PrivacyPage() {
+export default function TermsPage() {
   return (
     <main className="min-h-screen bg-[#090b10] text-[#f5efe2]">
       <section className="border-b border-[#d7aa55]/20 bg-[#121018] px-5 py-10">
         <div className="mx-auto max-w-4xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
-            Privacy Policy
+            Terms of Service
           </p>
           <h1 className="mt-4 font-[family-name:var(--font-display)] text-4xl text-[#fff8ec]">
-            隐私政策
+            用户服务协议
           </h1>
           <p className="mt-4 text-sm leading-7 text-[#cfc2ae]">
-            「{siteConfig.name}」重视用户隐私与个人信息保护。使用本站服务前，请仔细阅读本隐私政策。
+            欢迎使用「{siteConfig.name}」。用户使用本站服务，即表示已阅读并同意本协议。
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-10">
         <article className="space-y-5 border border-[#d7aa55]/20 bg-[#111714] p-5 shadow-2xl shadow-black/30 sm:p-7">
-          {privacySections.map((section) => (
+          {termsSections.map((section) => (
             <section key={section.title} className="border-b border-[#f5efe2]/10 pb-5 last:border-b-0">
               <h2 className="text-xl font-bold text-[#fff8ec]">{section.title}</h2>
               <div className="mt-3 space-y-3 text-sm leading-7 text-[#cfc2ae]">
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
             返回首页
           </Link>
           {legalLinks
-            .filter((link) => link.href !== "/privacy")
+            .filter((link) => link.href !== "/terms")
             .map((link) => (
               <Link
                 key={link.href}

@@ -14,8 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} | 紫微八字星座 MBTI 四维分析`,
-  description: "融合紫微斗数、生辰八字、西方星座和 MBTI 的 AI 自我理解报告，支持继续追问和深度互动。",
+  title: `${siteConfig.name}｜AI人生解码报告`,
+  description:
+    "输入出生信息与当前困惑，生成融合八字、紫微、星座、MBTI 与 AI 分析的人生复盘报告，包含事业、财富、关系与未来30天行动建议。仅供自我探索与成长参考。",
+  openGraph: {
+    title: "AI人生解码报告｜看清你的性格底层与下一步行动",
+    description:
+      "融合传统文化符号系统、人格模型与 AI 分析，生成你的个人成长复盘报告。",
+    siteName: siteConfig.name,
+    locale: "zh_CN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

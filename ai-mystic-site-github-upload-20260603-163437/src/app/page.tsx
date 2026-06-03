@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { FourDimensionalEngine } from "@/components/four-dimensional-engine";
 import { MysticReportForm } from "@/components/mystic-report-form";
+import {
+  boundaryNotice,
+  heroTrustLine,
+  legalLinks,
+  paymentNotice,
+  refundNotice,
+  standardDisclaimer,
+} from "@/lib/legal-copy";
 import { siteConfig } from "@/lib/site-config";
 
 const navLinks = [
@@ -8,7 +16,7 @@ const navLinks = [
   ["报告样例", "/examples"],
   ["解锁流程", "/service"],
   ["用户评价", "#testimonials"],
-  ["关于我们", "#trust"],
+  ["免责声明", "/disclaimer"],
 ];
 
 const dimensions = [
@@ -19,20 +27,20 @@ const dimensions = [
 ];
 
 const decodeCards = [
-  ["传统命理", "看人生节律", "从八字与紫微里提取长期节奏、资源位置和阶段课题。"],
-  ["人格模型", "看行为模式", "用星座与 MBTI 理解决策偏好、压力反应和适合环境。"],
-  ["AI 推理", "生成现实建议", "把命理符号翻译成事业、财富、关系和行动建议。"],
+  ["看清性格底层", "人格画像", "从 MBTI、星座与 AI 推理中提取你的思维方式、情绪模式和行为习惯。"],
+  ["理解人生节奏", "阶段复盘", "结合八字与紫微结构，分析你在事业、财富、关系中的阶段性倾向。"],
+  ["定位现实卡点", "问题诊断", "不是告诉你命好不好，而是帮你看见为什么反复卡在同一种问题里。"],
+  ["生成行动方案", "落地建议", "输出未来30天可执行建议，让报告不止停留在分析，而能真正帮助行动。"],
 ];
 
 const reportModules = [
-  "核心人格画像",
-  "事业定位与适合环境",
-  "财富习惯与副业节奏",
-  "亲密关系与边界提醒",
-  "未来一年阶段提醒",
-  "未来 30 天行动方案",
-  "继续追问示例",
-  "截图分享版总结",
+  ["01 核心人格画像", "你的底层性格模式、思维方式、情绪反应、长期优势与隐藏消耗。"],
+  ["02 事业路径分析", "适合你的工作环境、能力方向、当前事业卡点与突破建议。"],
+  ["03 财富节奏分析", "赚钱阻力来源、消费与决策模式、副业与变现节奏建议。"],
+  ["04 关系模式分析", "亲密关系惯性、人际合作优势与风险、关系沟通建议。"],
+  ["05 未来一年提醒", "接下来阶段的关注重点、压力来源和应避免的决策误区。"],
+  ["06 未来30天行动计划", "3个核心行动建议、每周复盘方向和可执行小任务。"],
+  ["07 继续追问方向", "基于报告继续深化事业、财富、关系、成长方向。"],
 ];
 
 const heroFeatures = ["AI智能解读", "四维融合分析", "个性化报告", "隐私安全保障"];
@@ -146,16 +154,16 @@ export default function Home() {
           <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[0.92fr_1.08fr]">
             <div>
               <div className="mb-6 inline-flex border border-[#d7aa55]/35 bg-[#17121f]/70 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#d7aa55]">
-                AI Personal Destiny Operating System
+                AI Self Insight Report
               </div>
               <h1 className="max-w-3xl font-[family-name:var(--font-display)] text-5xl leading-[1.04] text-[#fff8ec] sm:text-6xl lg:text-7xl">
-                你不是缺努力，
+                输入出生信息 + 当前困惑，
                 <span className="mt-2 block bg-[linear-gradient(90deg,#fff8ec,#d7aa55,#ffe7a8)] bg-clip-text text-transparent">
-                  你只是一直没看清自己的底层模式。
+                  生成你的事业、财富、关系与未来30天行动报告
                 </span>
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8cdb9] sm:text-lg">
-                融合八字底层节律、紫微人生结构、星座情绪能量、MBTI行为模式，生成一份关于性格底色、事业路径、财富节奏、关系模式和未来30天行动方案的人生底层说明书。
+                融合八字、紫微、星座、MBTI 与 AI 分析，帮你看清性格底层、人生节奏和下一步行动。内容仅供自我认知与成长参考，不作迷信预测。
               </p>
               <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-4">
                 {heroFeatures.map((item) => (
@@ -172,17 +180,17 @@ export default function Home() {
                   href="#report-form"
                   className="xj-cta inline-flex h-14 items-center justify-center rounded-full bg-[#d7aa55] px-10 text-base font-bold text-[#121714] transition hover:-translate-y-0.5 hover:bg-[#f0c86c]"
                 >
-                  立即解码我的人生
+                  立即生成免费摘要
                 </a>
                 <Link
-                  href="/examples"
+                  href="#full-report"
                   className="inline-flex h-14 items-center justify-center rounded-full border border-[#d7aa55]/30 bg-[#d7aa55]/10 px-8 text-sm font-bold text-[#f2ddae] transition hover:-translate-y-0.5 hover:border-[#d7aa55]"
                 >
-                  查看示例报告
+                  查看完整版报告包含什么
                 </Link>
               </div>
               <p className="mt-4 max-w-xl text-sm leading-6 text-[#cfc2ae]">
-                免费生成核心摘要，完整版解锁事业、财富、关系、未来一年节奏与 30 天行动计划。
+                {heroTrustLine}
               </p>
             </div>
 
@@ -295,13 +303,13 @@ export default function Home() {
               Decode System
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
-              不是算命，是一次 AI 人生解码。
+              这不是传统算命，而是一份 AI 人生复盘报告
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#cfc2ae]">
-              系统不会告诉你“命中注定”，而是把命理结构、人格模型和现实行动放在同一张图里交叉验证。
+              系统不会告诉你“命中注定”，而是把传统文化符号、人格模型和现实行动放在同一张图里交叉验证。
             </p>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {decodeCards.map(([title, tag, desc], index) => (
               <article key={title} className="xj-glass xj-card-hover p-5" style={{ animationDelay: `${index * 90}ms` }}>
                 <p className="text-xs font-bold text-[#d7aa55]">{tag}</p>
@@ -340,33 +348,33 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+      <section id="full-report" className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
         <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
-              Unlock Value
+              Full Report Preview
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
-              完整报告的价值，不是告诉你命运，而是帮你看懂下一步。
+              完整版报告包含什么？
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#d8cdb9]">
-              如果你只是想随便测一测，免费摘要已经够了。但如果你正在经历事业选择、关系困惑、自我重建、财富转型或人生方向混乱，完整版更像是一份给自己的深度复盘报告。
+              付费解锁后，你将获得一份结构化、可复盘、可继续追问的个人 AI 人生报告。
             </p>
             <div className="mt-6 border border-[#d7aa55]/35 bg-[#121714] p-5">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
-                完整深度报告 · MVP 内测体验价 ¥19.9
+                解锁完整版 AI 人生报告 · ¥19.9
               </p>
               <a
                 href="#report-form"
                 className="xj-cta mt-4 inline-flex h-12 w-full items-center justify-center bg-[#d7aa55] px-5 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c]"
               >
-                解锁我的完整人生报告 ¥19.9
+                解锁完整版报告
               </a>
               <p className="mt-3 text-center text-xs leading-5 text-[#cfc2ae]">
-                一次解锁，适合截图保存、反复复盘、继续追问。
+                你将获得一份包含人格画像、事业路径、财富节奏、关系模式、未来一年提醒和未来30天行动计划的完整报告。
               </p>
               <p className="mt-3 border border-[#d7aa55]/18 bg-black/20 px-3 py-2 text-xs leading-5 text-[#f2ddae]">
-                当前为 MVP 内测体验价，后续完整系统上线后，价格将根据报告深度和追问次数调整。
+                {paymentNotice}
               </p>
               <div className="mt-4 border border-[#d7aa55]/22 bg-black/25 p-4">
                 <p className="text-sm font-bold text-[#fff8ec]">解锁流程：</p>
@@ -379,16 +387,18 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="mt-3 text-xs leading-5 text-[#cfc2ae]">
-                  当前为MVP内测阶段，完整版采用人工核对方式，后续会上线自动支付与自动解锁。
+                  {refundNotice}
                 </p>
+                <p className="mt-3 text-xs leading-5 text-[#cfc2ae]">{boundaryNotice}</p>
               </div>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {reportModules.map((item, index) => (
-              <article key={item} className="xj-glass p-5 transition hover:-translate-y-1 hover:border-[#9b7cff]/60">
-                <p className="text-xs font-bold text-[#d7aa55]">{String(index + 1).padStart(2, "0")}</p>
-                <h3 className="mt-5 text-sm font-bold leading-7 text-[#fff8ec]">{item}</h3>
+            {reportModules.map(([title, desc]) => (
+              <article key={title} className="xj-glass p-5 transition hover:-translate-y-1 hover:border-[#9b7cff]/60">
+                <p className="text-xs font-bold text-[#d7aa55]">{title.slice(0, 2)}</p>
+                <h3 className="mt-5 text-base font-bold leading-7 text-[#fff8ec]">{title.slice(3)}</h3>
+                <p className="mt-3 text-xs leading-6 text-[#cfc2ae]">{desc}</p>
               </article>
             ))}
           </div>
@@ -404,6 +414,60 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#d7aa55]/18 bg-[#07080d]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:px-10">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7aa55]">
+              Demo Fragment
+            </p>
+            <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
+              样例报告片段
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-[#cfc2ae]">
+              以下为模拟样例，展示完整版报告的表达风格与分析深度。实际报告会根据用户输入信息生成。
+            </p>
+          </div>
+          <article className="border border-[#d7aa55]/28 bg-[#111714] p-5 shadow-2xl shadow-black/30">
+            <div className="flex flex-wrap items-center gap-2 border-b border-[#d7aa55]/16 pb-4">
+              <span className="rounded-full border border-[#9b7cff]/35 px-3 py-1 text-xs font-bold text-[#d9ccff]">
+                32岁男性
+              </span>
+              <span className="rounded-full border border-[#9b7cff]/35 px-3 py-1 text-xs font-bold text-[#d9ccff]">
+                INTJ
+              </span>
+              <span className="rounded-full border border-[#9b7cff]/35 px-3 py-1 text-xs font-bold text-[#d9ccff]">
+                事业转型期
+              </span>
+            </div>
+            <div className="mt-5 grid gap-4 text-sm leading-7 text-[#d8cdb9]">
+              <p>
+                <strong className="text-[#f2ddae]">核心洞察：</strong>
+                你不是执行力差，而是你的大脑一直在做复杂推演。你习惯先判断全局，再决定是否行动，所以当现实反馈太慢时，你容易陷入“想得很深，但启动很慢”的状态。
+              </p>
+              <p>
+                <strong className="text-[#f2ddae]">事业建议：</strong>
+                你的突破点不是再学一个工具，而是把你的判断力、经验和认知产品化。你适合做深度内容、咨询型服务、AI工作流产品或高价值小众解决方案。
+              </p>
+              <p>
+                <strong className="text-[#f2ddae]">财富提醒：</strong>
+                你当前的财富卡点不是没有机会，而是容易在多个方向之间消耗注意力。未来30天，最重要的动作不是扩张，而是选定一个最小变现闭环并持续推进。
+              </p>
+              <p>
+                <strong className="text-[#f2ddae]">关系模式：</strong>
+                你在人际关系中更重视深度、忠诚和价值观一致。一旦感受到敷衍或低质量沟通，你会迅速抽离。建议在关系中减少过度推演，增加直接表达。
+              </p>
+              <p>
+                <strong className="text-[#f2ddae]">30天行动建议：</strong>
+                第一周确定一个可变现主题；第二周做出一个可展示样品；第三周发布并收集反馈；第四周根据反馈优化，并尝试第一次收费。
+              </p>
+            </div>
+            <p className="mt-5 border border-[#d7aa55]/20 bg-[#d7aa55]/10 p-3 text-xs leading-6 text-[#f2ddae]">
+              以上内容为示例，不代表任何确定性预测。实际报告会根据用户输入信息生成。
+            </p>
+          </article>
         </div>
       </section>
 
@@ -505,7 +569,15 @@ export default function Home() {
       </a>
 
       <section className="px-5 py-8 text-center text-sm leading-7 text-[#bdb19f] sm:px-8">
-        客服微信：{siteConfig.contactWeChat} ｜ 联系邮箱：{siteConfig.contactEmail}。本站内容仅用于娱乐、自我探索和产品演示，不构成医疗、法律、投资、婚恋等现实决策建议。
+        <p>客服微信：{siteConfig.contactWeChat} ｜ 联系邮箱：{siteConfig.contactEmail}</p>
+        <p className="mx-auto mt-3 max-w-4xl">{standardDisclaimer}</p>
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          {legalLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="text-[#d7aa55] underline-offset-4 hover:underline">
+              {link.label}
+            </Link>
+          ))}
+        </div>
       </section>
     </main>
   );

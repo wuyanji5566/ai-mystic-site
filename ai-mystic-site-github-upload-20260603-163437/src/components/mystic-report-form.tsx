@@ -16,6 +16,7 @@ import {
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { FreeSummaryReport } from "@/components/free-summary-report";
 import { ReportSectionCards } from "@/components/report-section-cards";
+import { legalLinks, standardDisclaimer } from "@/lib/legal-copy";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
@@ -47,12 +48,10 @@ const focusPresets = [
   "财富",
   "感情",
   "婚姻",
-  "健康",
+  "人际关系",
   "人生方向",
-  "副业",
-  "转型",
-  "亲子",
-  "家庭",
+  "未来一年",
+  "30天行动建议",
 ];
 
 const reportIntentPresets = [
@@ -218,6 +217,46 @@ function getDimensionScores(input: MysticInput, profile?: ReportResponse["profil
   ] as const;
 }
 
+function getPersonalizedKit(input: MysticInput, profile?: ReportResponse["profile"]) {
+  const seed = `${input.name}${input.birthDate}${input.birthPlace}${input.focus}${profile?.westernSign || ""}`;
+  const base = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const palettes = [
+    ["玄金", "#d7aa55", "适合把目标写下来，用稳定节奏建立现实成果。"],
+    ["星紫", "#9b7cff", "适合先做深度判断，再选择一个高质量切入点。"],
+    ["青曜", "#2f9c89", "适合减少情绪消耗，把注意力收回到可控行动。"],
+    ["赤砂", "#b45a46", "适合主动表达边界，别让重要关系靠猜测维持。"],
+  ] as const;
+  const actionCards = [
+    "今天先完成一件能被别人看到的小作品，不要只停留在想法里。",
+    "把最近最纠结的问题写成三列：我能控制、我能影响、我必须放下。",
+    "选一个你一直拖延的方向，做 25 分钟低门槛启动，不追求完美。",
+    "给一个重要关系说清楚真实需求，不用攻击，也不要继续憋着。",
+    "整理一个赚钱/事业机会清单，只保留最能长期复利的三个方向。",
+  ];
+  const roles = [
+    "长期系统搭建者",
+    "高敏感策略观察者",
+    "现实反馈校准者",
+    "资源整合型行动者",
+    "深度表达型规划者",
+  ];
+  const palette = palettes[base % palettes.length];
+
+  return {
+    serial: `XJ-${String(base % 10000).padStart(4, "0")}-${(profile?.westernSign || "STAR").slice(0, 2).toUpperCase()}`,
+    role: roles[(base * 3) % roles.length],
+    energyName: palette[0],
+    energyColor: palette[1],
+    energyAdvice: palette[2],
+    todayAction: actionCards[(base * 5) % actionCards.length],
+    compatibleScene: /事业|财富|副业|转型/.test(input.focus)
+      ? "适合做有长期积累、可沉淀作品、能逐步放大个人判断力的事情。"
+      : /感情|婚姻|关系/.test(input.focus)
+        ? "适合建立更清晰的关系边界，让安全感来自表达，而不是反复猜测。"
+        : "适合先建立一个现实承接系统，让想法、行动和反馈形成闭环。",
+  };
+}
+
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
   const [activeStep, setActiveStep] = useState<FormStep>(1);
@@ -240,6 +279,7 @@ export function MysticReportForm() {
   const [unlockSeconds, setUnlockSeconds] = useState(15 * 60);
   const [generationStepIndex, setGenerationStepIndex] = useState(0);
   const [showMobileCta, setShowMobileCta] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const reportRef = useRef<HTMLElement | null>(null);
@@ -307,6 +347,16 @@ export function MysticReportForm() {
       return;
     }
 
+    if (!hasAcceptedTerms) {
+      setError("请先阅读并勾选用户服务协议、隐私政策和免责声明。");
+      setActiveStep(3);
+      return;
+    }
+
+    const requestInput = {
+      ...form,
+      name: form.name.trim() || "匿名用户",
+    };
     const hasUsedFreeReport = getFreeReportUsage().count >= siteConfig.freeReportsPerUser;
     const minimumGenerationRitual = new Promise<void>((resolve) => {
       window.setTimeout(resolve, 4300);
@@ -319,7 +369,7 @@ export function MysticReportForm() {
       const response = await fetch("/api/mystic-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(requestInput),
       });
       const data = (await response.json()) as unknown;
 
@@ -332,7 +382,7 @@ export function MysticReportForm() {
 
       try {
         const saved = await saveReportWithCloudFallback({
-          input: form,
+          input: requestInput,
           profile: reportData.profile,
           report: reportData.report,
           mode: reportData.mode,
@@ -412,10 +462,10 @@ export function MysticReportForm() {
   ).padStart(2, "0")}`;
   const personaBadge = getPersonaBadge(form, report?.profile);
   const dimensionScores = getDimensionScores(form, report?.profile);
+  const personalizedKit = getPersonalizedKit(form, report?.profile);
 
   function getStepError(step: FormStep) {
     if (step >= 1) {
-      if (!form.name.trim()) return "请先填写昵称。";
       if (!form.birthDate) return "请选择完整的出生日期。";
       if (!form.birthTime) return "请选择出生时间。如果不确定，可以选择“不知道时间”。";
       if (!form.birthPlace.trim()) return "请填写出生地点。";
@@ -616,13 +666,12 @@ export function MysticReportForm() {
           <div className="grid gap-4">
             <div className="grid gap-4 sm:grid-cols-[1fr_0.7fr]">
               <label className={labelClass}>
-                昵称
+                姓名/昵称（可选）
                 <input
-                  required
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                   className={inputClass}
-                  placeholder="例如：小林"
+                  placeholder="可不填，不填则以匿名用户生成"
                 />
               </label>
               <label className={labelClass}>
@@ -960,6 +1009,27 @@ export function MysticReportForm() {
               <p className="mt-4 border border-[#2f9c89]/22 bg-[#0e1917] px-4 py-3 text-sm leading-7 text-[#c8efe4]">
                 免费摘要会展示核心性格、事业方向和关系提醒。完整版可继续解锁详细分析、30 天行动方案和后续追问。
               </p>
+              <label className="mt-4 flex cursor-pointer gap-3 border border-[#d7aa55]/20 bg-[#17120d] p-4 text-xs leading-6 text-[#f2ddae]">
+                <input
+                  type="checkbox"
+                  checked={hasAcceptedTerms}
+                  onChange={(event) => setHasAcceptedTerms(event.target.checked)}
+                  className="mt-1 h-4 w-4 accent-[#d7aa55]"
+                />
+                <span>
+                  我已阅读并同意
+                  {legalLinks.map((link, index) => (
+                    <span key={link.href}>
+                      <Link href={link.href} className="font-bold text-[#fff8ec] underline underline-offset-4">
+                        《{link.label}》
+                      </Link>
+                      {index < legalLinks.length - 1 ? "、" : ""}
+                    </span>
+                  ))}
+                  ，理解本报告仅用于自我探索与成长参考，不构成现实决策建议。
+                </span>
+              </label>
+              <p className="mt-3 text-xs leading-6 text-[#9fa89f]">{standardDisclaimer}</p>
             </div>
           </div>
         ) : null}
@@ -994,7 +1064,7 @@ export function MysticReportForm() {
           ) : (
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !hasAcceptedTerms}
               className="xj-cta h-12 bg-[#d7aa55] px-6 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? "正在生成..." : "生成我的报告 →"}
@@ -1136,6 +1206,57 @@ export function MysticReportForm() {
             <p className="mt-3 text-xs leading-5 text-[#cfc2ae]">
               这是根据本次输入生成的体验型四维指数，用于增强自我观察，不代表绝对结论。
             </p>
+          </div>
+          <div className="mt-4 border border-[#9b7cff]/28 bg-[#0d0c18] p-4 text-[#f5efe2]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#9b7cff]">
+                  Personal Destiny Kit
+                </p>
+                <h4 className="mt-2 text-2xl font-bold text-[#fff8ec]">
+                  你的专属人生说明书编号
+                </h4>
+              </div>
+              <span className="w-fit border border-[#d7aa55]/35 bg-[#d7aa55]/10 px-3 py-2 text-xs font-black tracking-[0.16em] text-[#f2ddae]">
+                {personalizedKit.serial}
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <article className="border border-[#f5efe2]/10 bg-black/22 p-4">
+                <span className="text-xs font-bold text-[#d7aa55]">四维人格签名</span>
+                <strong className="mt-2 block text-xl text-[#fff8ec]">
+                  {personalizedKit.role}
+                </strong>
+                <p className="mt-2 text-sm leading-7 text-[#cfc2ae]">
+                  {personalizedKit.compatibleScene}
+                </p>
+              </article>
+              <article className="border border-[#f5efe2]/10 bg-black/22 p-4">
+                <span className="text-xs font-bold text-[#d7aa55]">今日行动签</span>
+                <p className="mt-2 text-sm font-bold leading-7 text-[#fff8ec]">
+                  {personalizedKit.todayAction}
+                </p>
+              </article>
+              <article className="border border-[#f5efe2]/10 bg-black/22 p-4 md:col-span-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#d7aa55]">专属能量色</span>
+                    <strong className="mt-2 block text-xl text-[#fff8ec]">
+                      {personalizedKit.energyName}
+                    </strong>
+                  </div>
+                  <div
+                    className="h-12 w-full border border-white/10 sm:w-40"
+                    style={{
+                      background: `linear-gradient(90deg, ${personalizedKit.energyColor}, rgba(255,255,255,0.12))`,
+                    }}
+                  />
+                </div>
+                <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">
+                  {personalizedKit.energyAdvice}
+                </p>
+              </article>
+            </div>
           </div>
           <div className="mt-5">
             <FreeSummaryReport

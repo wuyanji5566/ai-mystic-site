@@ -8,6 +8,8 @@ const routes = [
   "/service",
   "/pricing",
   "/privacy",
+  "/terms",
+  "/disclaimer",
   "/professional",
   "/deploy",
 ];

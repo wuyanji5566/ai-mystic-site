@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { boundaryNotice, paymentNotice, refundNotice } from "@/lib/legal-copy";
 import { siteConfig } from "@/lib/site-config";
 
 type PaymentUnlockPanelProps = {
@@ -14,8 +15,8 @@ type PaymentUnlockPanelProps = {
 };
 
 export function PaymentUnlockPanel({
-  title = "完整深度报告 · 限时体验价 19.9 元",
-  description = "一次解锁，继续查看事业定位、财富节奏、关系模式、未来一年阶段提醒和 30 天行动计划，适合截图保存、反复复盘。",
+  title = "解锁完整版 AI 人生报告",
+  description = "一次解锁，继续查看人格画像、事业路径、财富节奏、关系模式、未来一年提醒和 30 天行动计划。当前页面会在付款确认后展开完整版体验。",
   onUnlock,
   onClose,
   compact = false,
@@ -119,14 +120,22 @@ export function PaymentUnlockPanel({
               <strong className="text-[#121714]">{siteConfig.contactWeChat}</strong>。
             </p>
             <p>
-              当前为 MVP 体验版，扫码付款后点击下方按钮即可继续生成完整版。后续接入微信支付或支付宝商户接口后，会升级为真实支付回调自动识别。
+              {paymentNotice}
+            </p>
+            <p>
+              <strong className="text-[#121714]">售后说明：</strong>
+              {refundNotice}
+            </p>
+            <p>
+              <strong className="text-[#121714]">内容边界：</strong>
+              {boundaryNotice}
             </p>
 
             {onUnlock ? (
               <div className="mt-2 grid gap-2">
                 {showSelfServiceHint ? (
                   <p className="border border-[#d7aa55]/35 bg-[#fff6df] px-3 py-2 text-xs font-bold leading-5 text-[#9a563f]">
-                    请先完成付款再点击。系统会在当前浏览器记录本次解锁状态，并立即展开完整深度报告。
+                    请先完成付款再点击。点击后系统会在当前浏览器记录本次解锁状态，并自动展开完整深度报告。
                   </p>
                 ) : null}
                 <button
@@ -134,7 +143,7 @@ export function PaymentUnlockPanel({
                   onClick={onUnlock}
                   className="xj-cta h-12 bg-[#1d1a16] px-5 text-sm font-bold text-[#fff8ec] transition hover:bg-[#9a563f]"
                 >
-                  我已完成支付，生成完整报告
+                  我已完成支付，自动展开完整报告
                 </button>
                 <p className="text-xs leading-5 text-[#8a7560]">
                   如果误点或付款备注遗漏订单号，可联系微信客服 {siteConfig.contactWeChat} 处理。
