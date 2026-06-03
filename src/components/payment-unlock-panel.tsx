@@ -15,8 +15,8 @@ type PaymentUnlockPanelProps = {
 };
 
 export function PaymentUnlockPanel({
-  title = "解锁完整版深度解析",
-  description = "支付后可继续查看完整报告、深度追问、行动计划和后续人工协助解锁。",
+  title = "完整深度报告 · 限时体验价 19.9 元",
+  description = "一次解锁，继续查看事业定位、财富节奏、关系模式、未来一年阶段提醒和 30 天行动计划，适合截图保存、反复复盘。",
   unlockCode = "",
   onUnlockCodeChange,
   onUnlock,
@@ -109,7 +109,11 @@ export function PaymentUnlockPanel({
               </div>
             </div>
             <p>
-              价格：<strong className="text-[#121714]">{siteConfig.fullReportPriceLabel}</strong>
+              完整深度报告 · 限时体验价：
+              <strong className="text-[#121714]">{siteConfig.fullReportPriceLabel}</strong>
+            </p>
+            <p>
+              免费摘要适合随便测一测；完整版更适合正在经历事业转型、关系困惑、自我重建或需要行动计划的人。
             </p>
             <p>
               付款方式：扫码支付后，请在付款备注里填写订单号{" "}

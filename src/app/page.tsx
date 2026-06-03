@@ -33,6 +33,8 @@ const previewSections = [
   ["可分享", "报告页保留截图友好的卡片结构，方便保存、复盘或发给朋友讨论。"],
 ];
 
+const exampleLockedItems = ["适合的事业环境", "赚钱方式", "关系风险点", "30 天行动方案"];
+
 const testimonials = [
   ["像老师在帮我拆自己", "不是只说我是什么性格，而是说出了我为什么总是想太多、落地慢。"],
   ["事业建议更实用", "报告没有夸张承诺，反而告诉我哪些环境不适合我，这点很有用。"],
@@ -112,7 +114,10 @@ export default function Home() {
                 你不是缺答案，你是缺一份看懂自己的底层说明书。
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8cdb9] sm:text-lg">
-                免费先生成核心摘要，快速看见你的性格底色、事业方向和关系提醒。完整版继续解锁事业、财富、关系、未来一年节奏与 30 天行动方案。
+                输入出生信息、MBTI 和当前关注方向，系统会融合紫微、八字、星座与人格模型，生成一份关于你性格底色、事业方向、财富节奏、关系模式和未来行动的个人报告。免费先看核心摘要，完整版解锁深度分析与30天行动方案。
+              </p>
+              <p className="mt-4 max-w-2xl border-l-2 border-[#d7aa55] pl-4 text-sm leading-7 text-[#f2ddae]">
+                这不是“神秘预言”，而是一次把传统命理、人格模型和现实行动结合起来的自我复盘。
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -155,10 +160,10 @@ export default function Home() {
               Sample Screenshot
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight">
-              报告不是一整坨文字，而是能读、能存、能继续问的卡片。
+              示例：一个 INTJ 型用户的四维画像
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#52615b]">
-              免费摘要先建立信任，完整版再展开更深的结构。用户看得懂，才愿意继续解锁。
+              “你不是缺想法，而是缺一个能长期承接你想法的现实系统。你适合在复杂信息、长期判断和系统构建中建立优势，但不适合长期做重复、低自主权、强情绪消耗的工作。”
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
@@ -166,7 +171,10 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8b2732]">
                 示例报告截图
               </p>
-              <h3 className="mt-3 text-2xl font-bold">四维交叉画像</h3>
+              <h3 className="mt-3 text-2xl font-bold">INTJ 四维交叉画像</h3>
+              <p className="mt-3 border border-[#121714]/10 bg-[#fffaf2] p-4 text-sm leading-7 text-[#52615b]">
+                你不是缺想法，而是缺一个能长期承接你想法的现实系统。你适合在复杂信息、长期判断和系统构建中建立优势，但不适合长期做重复、低自主权、强情绪消耗的工作。
+              </p>
               <div className="mt-5 grid gap-3">
                 {previewSections.map(([title, body]) => (
                   <div key={title} className="border border-[#121714]/10 bg-[#fffaf2] p-4">
@@ -174,6 +182,16 @@ export default function Home() {
                     <p className="mt-2 text-sm leading-7 text-[#52615b]">{body}</p>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 border border-[#d7aa55]/35 bg-[#121714] p-4 text-[#fff8ec]">
+                <p className="text-sm font-bold text-[#d7aa55]">完整报告中将继续展开：</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {exampleLockedItems.map((item) => (
+                    <p key={item} className="border border-[#d7aa55]/16 bg-black/25 px-3 py-2 text-xs font-bold">
+                      {item}
+                    </p>
+                  ))}
+                </div>
               </div>
             </article>
             <div className="grid gap-3">
@@ -195,10 +213,10 @@ export default function Home() {
               Unlock Value
             </p>
             <h2 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight text-[#fff8ec]">
-              完整版的价值，是把“看见自己”变成“知道怎么做”。
+              完整深度报告 · 限时体验价 19.9 元
             </h2>
             <p className="mt-4 text-sm leading-7 text-[#d8cdb9]">
-              每份完整报告围绕真实生活场景展开：工作、关系、财富、执行力和未来一个月的具体行动。
+              如果你只是想随便测一测，免费摘要已经够了。但如果你正处在人生选择、事业转型、关系困惑或自我重建阶段，完整版更像是一份给自己的复盘报告。
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -13,7 +13,7 @@ import {
   type SavedMysticReport,
 } from "@/lib/report-storage";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
-import { ReportSectionCards } from "@/components/report-section-cards";
+import { FreeSummaryReport } from "@/components/free-summary-report";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
@@ -932,30 +932,6 @@ export function MysticReportForm() {
             </Link>
           </div>
 
-          <div className="mb-5 overflow-hidden border border-[#d7aa55]/45 bg-[#121714] p-4 text-[#fff8ec] shadow-xl shadow-[#121714]/20">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
-                  Unlock Full Report · {unlockCountdown}
-                </p>
-                <h4 className="mt-2 text-2xl font-bold">继续深度解析完整版</h4>
-                <p className="mt-2 text-sm leading-7 text-[#d8cdb9]">
-                  当前是免费摘要。完整版会展开事业、财富、关系、未来一年节奏、30 天行动计划和后续追问。今日体验价仅 {siteConfig.fullReportPriceLabel}。
-                </p>
-                <p className="mt-2 text-xs font-bold text-[#aef2dd]">
-                  当前批次剩余 17 个人工核对名额，付款后请保留订单号。
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPayment(true)}
-                className="xj-cta h-12 bg-[#d7aa55] px-6 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c]"
-              >
-                解锁完整版 →
-              </button>
-            </div>
-          </div>
-
           {copyMessage ? (
             <p className="mb-4 border border-[#121714]/10 bg-white px-4 py-3 text-sm text-[#52615b]">
               {copyMessage}
@@ -982,20 +958,25 @@ export function MysticReportForm() {
           </div>
           <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
           <div className="mt-5">
-            <ReportSectionCards report={report.report} limit={4} locked />
+            <FreeSummaryReport
+              input={form}
+              profile={report.profile}
+              report={report.report}
+              onUnlock={() => setShowPayment(true)}
+            />
           </div>
           <p className="mt-5 text-xs text-[#69756f]">
-            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"}
+            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"} · 完整版倒计时 {unlockCountdown}
           </p>
         </article>
       ) : null}
 
       {showPayment ? (
         <PaymentUnlockPanel
-          title={report ? "解锁这份报告的深度解析" : "解锁下一次完整报告"}
+          title={report ? "完整深度报告 · 限时体验价 19.9 元" : "解锁下一次完整报告"}
           description={
             report
-              ? "你已经生成免费报告。继续查看完整深度内容、后续追问和行动计划，需要解锁完整版。"
+              ? "如果你正处在人生选择、事业转型、关系困惑或自我重建阶段，完整版更像是一份给自己的复盘报告。"
               : "免费生成次数已用完。支付后可继续生成完整版报告，并获得后续深度解析入口。"
           }
           onClose={() => setShowPayment(false)}
