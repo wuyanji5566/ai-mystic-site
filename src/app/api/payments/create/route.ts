@@ -39,14 +39,12 @@ export async function POST(request: Request) {
   if (!isOrderStoreConfigured()) {
     return Response.json(
       {
-        mode: "manual",
-        unlockMode: "admin_confirmed",
-        orderId: createOrderId(),
-        status: "pending",
-        message: "Supabase 未配置，订单无法保存。请联系客服人工核对付款截图。",
-        requiredKeys: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+        mode: "contact_only",
+        unlockMode: "contact_confirmed",
+        status: "unavailable",
+        message: "当前自动订单核对正在维护。付款前请先联系客服确认，避免付款后无法及时开通。",
       },
-      { status: 503 },
+      { status: 200 },
     );
   }
 

@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
       maxRetries: 0,
-      timeout: 22000,
+      timeout: 40000,
     });
 
     try {
@@ -83,8 +83,8 @@ export async function POST(request: Request) {
             content: buildMysticPrompt(input, profile),
           },
         ],
-        temperature: 0.7,
-        max_tokens: 2400,
+        temperature: 0.76,
+        max_tokens: 3600,
       });
 
       const report = completion.choices[0]?.message?.content?.trim();

@@ -373,6 +373,98 @@ textarea {
   gap: 0.85rem;
 }
 
+.fusion-lens-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.15rem;
+}
+
+.fusion-lens-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(215, 170, 85, 0.26);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(155, 124, 255, 0.14), transparent 38%),
+    rgba(0, 0, 0, 0.2);
+  padding: 0.95rem;
+}
+
+.fusion-lens-card::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3rem;
+  height: 3rem;
+  border-top: 1px solid rgba(215, 170, 85, 0.4);
+  border-right: 1px solid rgba(215, 170, 85, 0.4);
+  content: "";
+}
+
+.fusion-lens-card span {
+  display: block;
+  color: #d7aa55;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.fusion-lens-card strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #fff8ec;
+  font-size: 0.86rem;
+}
+
+.fusion-lens-card b {
+  display: inline-flex;
+  margin-top: 0.65rem;
+  border: 1px solid rgba(155, 124, 255, 0.28);
+  background: rgba(155, 124, 255, 0.08);
+  padding: 0.25rem 0.5rem;
+  color: #d9ccff;
+  font-size: 0.72rem;
+}
+
+.fusion-lens-card p {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.fusion-equation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(215, 170, 85, 0.22);
+  background: rgba(215, 170, 85, 0.07);
+  padding: 0.9rem;
+  color: #f2ddae;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.fusion-equation i {
+  color: #9b7cff;
+  font-style: normal;
+}
+
+.fusion-equation strong {
+  width: 100%;
+  border-top: 1px solid rgba(215, 170, 85, 0.18);
+  padding-top: 0.65rem;
+  color: #fff8ec;
+}
+
+.fusion-diagnosis {
+  border-color: rgba(215, 170, 85, 0.5);
+  background:
+    radial-gradient(circle at 85% 10%, rgba(215, 170, 85, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(155, 124, 255, 0.09), transparent 52%),
+    rgba(11, 15, 20, 0.96);
+}
+
 .mini-insight {
   border: 1px solid rgba(215, 170, 85, 0.28);
   background: rgba(215, 170, 85, 0.08);
@@ -637,6 +729,10 @@ textarea {
   .report-grid,
   .strength-risk-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fusion-lens-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

@@ -19,7 +19,7 @@ const lockedItems = [
 ];
 
 export const fullReportModules = [
-  "四维综合人格总论",
+  "四维合参总诊断",
   "八字节律深度分析",
   "紫微人生结构分析",
   "星座情绪与关系表达分析",
@@ -53,17 +53,29 @@ function getImmediateAction(input: MysticInput) {
 }
 
 function getFreeSections(report: string) {
-  const allowedTitles = /四维综合人格总论|八字.*底层节律|紫微.*人生结构|星座.*情绪能量|MBTI.*行为模式/;
   const sections = parseReportSections(report);
-  const matchedSections = sections
-    .filter((section) => allowedTitles.test(section.title))
-    .slice(0, 5);
+  const synthesis = sections.find((section) =>
+    /四维合参总诊断|四维综合人格总论/.test(section.title),
+  );
+  const dimensions = sections
+    .filter((section) =>
+      /八字.*底层节律|紫微.*人生结构|星座.*情绪能量|MBTI.*行为模式/.test(
+        section.title,
+      ),
+    )
+    .slice(0, 4);
+  const crossConclusion = sections.find((section) =>
+    /四维交叉后的现实结论/.test(section.title),
+  );
 
-  if (matchedSections.length >= 3) return matchedSections;
-
-  return sections
-    .filter((section) => !/报告说明|摘要/.test(section.title))
-    .slice(0, 5);
+  return {
+    synthesis,
+    dimensions,
+    crossConclusion,
+    fallback: sections
+      .filter((section) => !/报告说明|摘要/.test(section.title))
+      .slice(0, 5),
+  };
 }
 
 export function FreeSummaryReport({
@@ -73,6 +85,32 @@ export function FreeSummaryReport({
   onUnlock,
 }: FreeSummaryReportProps) {
   const freeSections = getFreeSections(report);
+  const dimensionMeta = [
+    {
+      key: "八字",
+      label: "底层节律",
+      value: profile.yearPillar,
+      question: "你适合怎样发力",
+    },
+    {
+      key: "紫微",
+      label: "人生结构",
+      value: "结构倾向",
+      question: "你适合站在什么位置",
+    },
+    {
+      key: "星座",
+      label: "情绪能量",
+      value: profile.westernSign,
+      question: "你真正需要什么",
+    },
+    {
+      key: "MBTI",
+      label: "行为模式",
+      value: input.mbtiType,
+      question: "你习惯怎样判断与行动",
+    },
+  ];
 
   return (
     <section className="report-result">
@@ -95,20 +133,46 @@ export function FreeSummaryReport({
       </div>
 
       <div className="report-section highlight-section">
-        <span className="report-kicker">先看最重要的一句话</span>
+        <span className="report-kicker">四维合参引擎</span>
+        <h3>不是四份测评相加，而是四个角度互相验证</h3>
+        <div className="fusion-lens-grid">
+          {dimensionMeta.map((item) => (
+            <article key={item.key} className="fusion-lens-card">
+              <span>{item.key}</span>
+              <strong>{item.label}</strong>
+              <b>{item.value}</b>
+              <p>{item.question}</p>
+            </article>
+          ))}
+        </div>
+        <div className="fusion-equation">
+          <span>行为方式</span>
+          <i>×</i>
+          <span>情绪需求</span>
+          <i>+</i>
+          <span>发力节奏</span>
+          <i>×</i>
+          <span>人生位置</span>
+          <strong>＝ 你的现实模式</strong>
+        </div>
+      </div>
+
+      <div className="report-section fusion-diagnosis">
+        <span className="report-kicker">交叉后的第一结论</span>
         <h3>你不是缺能力，而是需要更适合自己的发力方式</h3>
         <p className="report-lead">
-          从你本次填写的信息看，你更像是一个「{getCoreLabel(input)}」。真正的问题往往不是你做不到，而是你习惯先把事情想清楚、确认值得，再允许自己投入；当现实反馈太慢时，这种谨慎就容易变成消耗。
+          {freeSections.synthesis?.body ||
+            `从你本次填写的信息看，你更像是一个「${getCoreLabel(input)}」。真正的问题往往不是你做不到，而是你习惯先把事情想清楚、确认值得，再允许自己投入；当现实反馈太慢时，这种谨慎就容易变成消耗。`}
         </p>
       </div>
 
-      {freeSections.length > 0 ? (
+      {freeSections.dimensions.length > 0 ? (
         <div className="report-grid premium-summary-grid">
-          {freeSections.map((section, index) => (
+          {freeSections.dimensions.map((section, index) => (
             <article key={`${section.title}-${index}`} className="report-card premium-summary-card">
               <div className="summary-card-topline">
                 <span>{String(index + 1).padStart(2, "0")}</span>
-                <strong>{index === 0 ? "核心判断" : "交叉视角"}</strong>
+                <strong>{dimensionMeta[index]?.question || "交叉视角"}</strong>
               </div>
               <h3>{section.title.replace(/^\d{1,2}\.\s*/, "")}</h3>
               <p className="whitespace-pre-wrap">{section.body}</p>
@@ -116,13 +180,28 @@ export function FreeSummaryReport({
           ))}
         </div>
       ) : (
-        <div className="report-section conclusion-section">
-          <h3>你的核心观察</h3>
-          <p>
-            你更适合在有自主空间、能积累经验并获得真实反馈的环境里建立优势。反复换方向或长期处在低反馈状态，会比工作本身更消耗你。
-          </p>
+        <div className="report-grid premium-summary-grid">
+          {freeSections.fallback.slice(0, 4).map((section, index) => (
+            <article key={`${section.title}-${index}`} className="report-card premium-summary-card">
+              <div className="summary-card-topline">
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{dimensionMeta[index]?.label || "分析视角"}</strong>
+              </div>
+              <h3>{section.title.replace(/^\d{1,2}\.\s*/, "")}</h3>
+              <p className="whitespace-pre-wrap">{section.body}</p>
+            </article>
+          ))}
         </div>
       )}
+
+      <div className="report-section conclusion-section">
+        <span className="report-kicker">四维交叉后的现实判断</span>
+        <h3>真正重要的不是标签，而是它们如何共同影响你的选择</h3>
+        <p className="report-lead">
+          {freeSections.crossConclusion?.body ||
+            `你的行为偏好让你更愿意先判断再行动，情绪层面又需要确定感和高质量反馈；与此同时，节律与结构倾向更支持长期积累，而不是频繁切换。围绕“${input.focus}”，你当前最值得优先解决的，是建立一个连续 30 天都能获得现实反馈的小闭环。`}
+        </p>
+      </div>
 
       <div className="report-section action-section">
         <span className="report-kicker">不付费也可以先做</span>
@@ -136,7 +215,7 @@ export function FreeSummaryReport({
       <div className="locked-report-card">
         <div className="lock-icon" aria-hidden="true">深度</div>
         <span className="report-kicker">当你需要更具体的答案时</span>
-        <h3>完整版会把“理解自己”继续拆到现实选择</h3>
+        <h3>免费版解释“为什么”，完整版继续回答“具体怎么选”</h3>
         <p className="premium-lock-lead">
           免费诊断到这里已经完整结束。下面不是重复扩写，而是围绕你的事业、财富、关系和行动计划继续给出更具体的判断。
         </p>
