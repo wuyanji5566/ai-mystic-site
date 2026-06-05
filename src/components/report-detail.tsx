@@ -1,25 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { ReportSectionCards } from "@/components/report-section-cards";
+import type { MysticInput, MysticProfile } from "@/lib/mystic";
 import { siteConfig } from "@/lib/site-config";
-import {
-  clearReportFollowups,
-  getReportFollowups,
-  isFollowupUnlocked,
-  saveReportFollowup,
-  unlockFollowupRoom,
-  type FollowupMessage,
-} from "@/lib/followup-storage";
-import {
-  isReportUnlocked,
-  getReportWithCloudFallback,
-  unlockReport,
-  type ReportStorageMode,
-  type SavedMysticReport,
-} from "@/lib/report-storage";
+
+type ServerReport = {
+  id: string;
+  reportId: string;
+  title: string;
+  createdAt: string;
+  input: MysticInput;
+  profile: MysticProfile;
+  report: string;
+  freeReport: string;
+  fullReport?: string;
+  mode: "ai" | "demo";
+  statusMessage: string;
+  unlocked: boolean;
+  orderId?: string;
+};
 
 type FollowupResponse = {
   answer: string;
@@ -28,170 +30,144 @@ type FollowupResponse = {
 };
 
 const followupPresets = [
-  "把紫微、八字、星座和 MBTI 合起来，帮我提炼我的核心人格画像",
-  "帮我深挖事业方向：我适合稳定积累、表达影响力，还是项目型机会？",
-  "帮我深挖亲密关系：我的沟通模式、关系边界和情绪触发点是什么？",
-  "帮我深挖财富模式：从性格和命盘倾向看，我该如何管理消费和副业？",
-  "帮我做未来 30 天行动计划，每周给我一个可执行任务",
-  "帮我把这份报告整理成适合截图分享的高级总结",
+  "我最适合做什么副业？",
+  "我现在的事业卡点是什么？",
+  "我的亲密关系最大问题是什么？",
+  "未来 30 天我应该先做哪三件事？",
 ];
 
-export function ReportDetail({ reportId }: { reportId: string }) {
-  const [report, setReport] = useState<SavedMysticReport | null>(null);
-  const [storageMode, setStorageMode] = useState<ReportStorageMode>("local");
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [copyMessage, setCopyMessage] = useState("");
-  const [followupQuestion, setFollowupQuestion] = useState(followupPresets[0]);
-  const [followup, setFollowup] = useState<FollowupResponse | null>(null);
-  const [followupHistory, setFollowupHistory] = useState<FollowupMessage[]>([]);
-  const [followupError, setFollowupError] = useState("");
-  const [isFollowupLoading, setIsFollowupLoading] = useState(false);
+export function ReportDetail({
+  reportId,
+  initialOrderId = "",
+}: {
+  reportId: string;
+  initialOrderId?: string;
+}) {
+  const [report, setReport] = useState<ServerReport | null>(null);
+  const [orderId, setOrderId] = useState(initialOrderId);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showPayment, setShowPayment] = useState(false);
-  const [isFollowupRoomUnlocked, setIsFollowupRoomUnlocked] = useState(false);
   const [showFollowupPayment, setShowFollowupPayment] = useState(false);
+  const [followupOrderId, setFollowupOrderId] = useState("");
+  const [question, setQuestion] = useState(followupPresets[0]);
+  const [followup, setFollowup] = useState<FollowupResponse | null>(null);
+  const [followupLoading, setFollowupLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const loadReport = useCallback(
+    async (paidOrderId = orderId) => {
+      setLoading(true);
+      setError("");
+      try {
+        const query = paidOrderId
+          ? `?orderId=${encodeURIComponent(paidOrderId)}`
+          : "";
+        const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}${query}`, {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as {
+          report?: ServerReport;
+          error?: string;
+        };
+
+        if (!response.ok || !data.report) {
+          throw new Error(data.error || "报告读取失败");
+        }
+        setReport(data.report);
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : "报告读取失败");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [orderId, reportId],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      getReportWithCloudFallback(reportId).then((result) => {
-        setReport(result?.report || null);
-        setStorageMode(result?.storage || "local");
-        setIsUnlocked(result?.report ? isReportUnlocked(result.report.id) : false);
-        setIsFollowupRoomUnlocked(result?.report ? isFollowupUnlocked(result.report.id) : false);
-        setFollowupHistory(result?.report ? getReportFollowups(result.report.id) : []);
-        setIsLoading(false);
-      });
+      void loadReport(initialOrderId);
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [reportId]);
+  }, [initialOrderId, loadReport]);
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopyMessage(
-      storageMode === "cloud"
-        ? "云端详情链接已复制，可以跨设备访问。"
-        : "本地详情链接已复制。当前还没配置 Supabase，跨设备分享需要先接数据库。",
-    );
-  }
-
-  async function copyText() {
-    if (!report) return;
-    const visibleText = isUnlocked
-      ? report.report
-      : `${report.report.split("\n").slice(0, 8).join("\n")}\n\n【完整版内容已隐藏】\n解锁后可查看完整深度分析、继续追问和行动计划。`;
-    await navigator.clipboard.writeText(visibleText);
-    setCopyMessage(isUnlocked ? "报告正文已复制。" : "免费摘要已复制。完整版内容需要解锁后查看。");
-  }
-
-  function handleUnlock() {
-    if (!report) return;
-
-    unlockReport(report.id);
-    setIsUnlocked(true);
-    setCopyMessage("完整版已解锁。完整报告和继续追问入口已打开。");
+  function handleFullReportPaid(paidOrderId: string) {
+    setOrderId(paidOrderId);
     setShowPayment(false);
+    const url = `/report/${reportId}?orderId=${encodeURIComponent(paidOrderId)}`;
+    window.history.replaceState(null, "", url);
+    void loadReport(paidOrderId);
   }
 
-  function handleFollowupUnlock() {
-    if (!report) return;
-
-    unlockFollowupRoom(report.id);
-    setIsFollowupRoomUnlocked(true);
+  function handleFollowupPaid(paidOrderId: string) {
+    setFollowupOrderId(paidOrderId);
     setShowFollowupPayment(false);
-    setCopyMessage("四维追问室已解锁。现在可以继续深化解析。");
+    setMessage("四维追问室已开通，可以提交一个具体问题。");
   }
 
-  async function handleFollowup(question = followupQuestion) {
+  async function copyReport() {
     if (!report) return;
+    await navigator.clipboard.writeText(report.report);
+    setMessage(report.unlocked ? "完整报告已复制。" : "免费摘要已复制。");
+  }
 
-    if (!isUnlocked) {
-      setFollowupError(
-        `继续深度解析需要解锁完整版报告，价格 ${siteConfig.fullReportPriceLabel}。`,
-      );
+  async function askFollowup(selectedQuestion = question) {
+    if (!report?.unlocked) {
       setShowPayment(true);
+      setMessage("请先解锁完整报告，再进入四维追问室。");
       return;
     }
-
-    if (!isFollowupRoomUnlocked) {
-      setFollowupError(
-        `四维追问室为单独深度解析服务，价格 ${siteConfig.followupPriceLabel}。支付后可围绕本报告继续提问。`,
-      );
+    if (!followupOrderId) {
       setShowFollowupPayment(true);
+      setMessage(`四维追问室需单独解锁 ${siteConfig.followupPriceLabel}。`);
       return;
     }
 
-    setFollowupQuestion(question);
-    setFollowupError("");
+    setQuestion(selectedQuestion);
     setFollowup(null);
-    setIsFollowupLoading(true);
+    setFollowupLoading(true);
+    setMessage("");
 
     try {
       const response = await fetch("/api/report-followup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          reportTitle: report.title,
-          report: report.report,
-          profile: report.profile,
-          question,
+          reportId,
+          orderId: followupOrderId,
+          question: selectedQuestion,
         }),
       });
-      const data = (await response.json()) as unknown;
-
-      if (!response.ok) {
-        const errorData = data as { error?: string };
-        throw new Error(errorData.error || "深化失败，请稍后再试。");
-      }
-
-      const followupData = data as FollowupResponse;
-      setFollowup(followupData);
-      const saved = saveReportFollowup({
-        reportId: report.id,
-        question,
-        answer: followupData.answer,
-        mode: followupData.mode,
-        statusMessage: followupData.statusMessage,
-      });
-      setFollowupHistory((items) => [...items, saved].slice(-12));
-    } catch (error) {
-      setFollowupError(error instanceof Error ? error.message : "深化失败，请稍后再试。");
+      const data = (await response.json()) as FollowupResponse & { error?: string };
+      if (!response.ok) throw new Error(data.error || "追问生成失败");
+      setFollowup(data);
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : "追问生成失败");
     } finally {
-      setIsFollowupLoading(false);
+      setFollowupLoading(false);
     }
   }
 
-  function handleClearFollowups() {
-    if (!report) return;
-    clearReportFollowups(report.id);
-    setFollowupHistory([]);
-    setFollowup(null);
-    setFollowupError("");
-    setCopyMessage("追问历史已清空。");
-  }
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <main className="min-h-screen bg-[#f8f3ea] px-5 py-10 text-[#1d1a16]">
-        <p>正在读取报告...</p>
+      <main className="grid min-h-screen place-items-center bg-[#080b0a] px-5 text-[#f6eddc]">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-[#d7aa55]/20 border-t-[#d7aa55]" />
+          <p className="mt-4 text-sm tracking-[0.18em] text-[#d7aa55]">正在读取专属报告</p>
+        </div>
       </main>
     );
   }
 
-  if (!report) {
+  if (!report || error) {
     return (
-      <main className="min-h-screen bg-[#f8f3ea] px-5 py-10 text-[#1d1a16]">
-        <section className="mx-auto max-w-3xl border border-[#dfd2c1] bg-white p-6">
-          <p className="text-sm font-semibold text-[#9a563f]">未找到报告</p>
-          <h1 className="mt-2 text-3xl font-semibold">这个报告只保存在生成它的浏览器里</h1>
-          <p className="mt-4 leading-7 text-[#6f6254]">
-            系统已尝试读取 Supabase 云端报告和本地浏览器报告，但都没有找到。请确认报告没有被删除，或者先回到首页重新生成一份。
-          </p>
-          <Link
-            href="/"
-            className="mt-6 inline-flex h-11 items-center bg-[#1d1a16] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
-          >
-            返回重新生成
+      <main className="grid min-h-screen place-items-center bg-[#080b0a] px-5 text-[#f6eddc]">
+        <section className="w-full max-w-xl border border-[#d7aa55]/35 bg-[#111513] p-6">
+          <p className="text-sm font-bold text-[#d7aa55]">报告暂时无法打开</p>
+          <h1 className="mt-2 text-2xl font-black">{error || "未找到这份报告"}</h1>
+          <Link href="/" className="mt-6 inline-flex bg-[#d7aa55] px-5 py-3 font-black text-[#17130c]">
+            返回首页重新生成
           </Link>
         </section>
       </main>
@@ -199,245 +175,135 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f3ea] text-[#1d1a16]">
-      <section className="border-b border-[#e4d8c7] bg-[#211c18] px-5 py-8 text-[#fff8ec]">
-        <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen bg-[#080b0a] text-[#f6eddc]">
+      <header className="border-b border-[#d7aa55]/20 bg-[#0d1110] px-4 py-7">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-[#d7aa55]">
+            AI Personal Destiny OS
+          </p>
+          <h1 className="mt-3 text-3xl font-black sm:text-4xl">{report.title}</h1>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#c9c0b1]">
+            {[report.profile.zodiac, report.profile.westernSign, report.profile.yearPillar, report.input.mbtiType].map(
+              (item) => (
+                <span key={item} className="border border-[#d7aa55]/25 px-3 py-2">
+                  {item}
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-5 sm:py-9">
+        <section className="mb-5 grid gap-3 border border-[#d7aa55]/25 bg-[#111513] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#f1c66d]">
-              Four-Lens Self Report
+            <p className="text-sm font-bold text-[#d7aa55]">
+              {report.unlocked ? "完整深度报告已解锁" : "免费核心摘要"}
             </p>
-            <h1 className="mt-3 text-4xl font-semibold">{report.title}</h1>
-            <p className="mt-3 text-sm text-[#ddccb5]">
-              生成时间：{new Date(report.createdAt).toLocaleString("zh-CN")}
+            <p className="mt-2 text-sm leading-7 text-[#bdb5a8]">
+              {report.unlocked
+                ? "这份报告已通过服务器订单核验，可保存、复盘并继续追问。"
+                : "你已经看到核心画像，事业、财富、关系和行动方案仍需解锁。"}
             </p>
           </div>
-          <Link
-            href="/reports"
-            className="w-fit border border-[#fff8ec]/25 px-4 py-2 text-sm font-medium transition hover:bg-[#fff8ec] hover:text-[#211c18]"
-          >
-            查看历史报告
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 py-8">
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
-            onClick={copyLink}
-            className="h-10 bg-[#1d1a16] px-4 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
+            onClick={copyReport}
+            className="h-11 border border-[#d7aa55]/35 px-4 text-sm font-bold text-[#f2d99a]"
           >
-            复制详情链接
+            复制当前报告
           </button>
-          <button
-            type="button"
-            onClick={copyText}
-            className="h-10 border border-[#d9c7b2] bg-white px-4 text-sm font-semibold transition hover:border-[#9a563f]"
-          >
-            复制报告正文
-          </button>
-          <Link
-            href="/"
-            className="flex h-10 items-center justify-center border border-[#d9c7b2] bg-white px-4 text-sm font-semibold transition hover:border-[#9a563f]"
-          >
-            生成新报告
-          </Link>
-        </div>
+        </section>
 
-        {copyMessage ? (
-          <p className="mb-5 border border-[#e5d7c5] bg-white px-3 py-2 text-sm text-[#6f6254]">
-            {copyMessage}
+        {message ? (
+          <p className="mb-5 border border-[#d7aa55]/30 bg-[#d7aa55]/8 px-4 py-3 text-sm text-[#f2d99a]">
+            {message}
           </p>
         ) : null}
 
-        <p className="mb-5 border border-[#e5d7c5] bg-white px-3 py-2 text-sm text-[#6f6254]">
-          保存位置：{storageMode === "cloud" ? "Supabase 云端，可跨设备分享" : "浏览器本地，仅当前设备可复看"}
-        </p>
+        <ReportSectionCards
+          report={report.report}
+          locked={!report.unlocked}
+          variant={report.unlocked ? "warm" : "light"}
+        />
 
-        {!isUnlocked ? (
-          <section className="mb-5 border border-[#dfd2c1] bg-white p-5">
-            <p className="text-sm font-semibold text-[#9a563f]">解锁深度解析</p>
-            <h2 className="mt-2 text-2xl font-semibold">当前只展示免费摘要</h2>
-            <p className="mt-3 text-sm leading-7 text-[#6f6254]">
-              完整版报告价格为 <strong className="text-[#1d1a16]">{siteConfig.fullReportPriceLabel}</strong>。
-              支付后可查看完整分析、继续追问和未来行动计划。
+        {!report.unlocked ? (
+          <section className="mt-6 border border-[#d7aa55]/45 bg-[#101412] p-5 sm:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d7aa55]">
+              Deep Report
             </p>
-            <div className="mt-4">
-              <PaymentUnlockPanel
-                compact
-                reportId={report.id}
-                productType="full_report"
-                productName="完整深度报告"
-                priceLabel={siteConfig.fullReportPriceLabel}
-                onUnlock={handleUnlock}
-              />
-            </div>
-          </section>
-        ) : null}
-
-        <article className="border border-[#dfd2c1] bg-[#fffaf2] p-5">
-          <div className="grid gap-3 border-b border-[#e5d7c5] pb-4 text-sm sm:grid-cols-4">
-            <p>
-              <span className="block text-[#8a7560]">生肖</span>
-              <strong>{report.profile.zodiac}</strong>
+            <h2 className="mt-3 text-2xl font-black">
+              完整报告的价值，不是告诉你命运，而是帮你看懂下一步
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-[#c9c0b1]">
+              如果你只是随便测一测，免费摘要已经够了。如果你正处在事业选择、关系困惑、自我重建或财富转型阶段，完整版更像一份给自己的深度复盘报告。
             </p>
-            <p>
-              <span className="block text-[#8a7560]">星座</span>
-              <strong>{report.profile.westernSign}</strong>
-            </p>
-            <p>
-              <span className="block text-[#8a7560]">年柱</span>
-              <strong>{report.profile.yearPillar}</strong>
-            </p>
-            <p>
-              <span className="block text-[#8a7560]">MBTI</span>
-              <strong>{report.input.mbtiType || "不确定"}</strong>
-            </p>
-          </div>
-
-          <p className="mt-4 text-sm leading-7 text-[#6f6254]">{report.profile.birthSummary}</p>
-          <div className="mt-6">
-            <ReportSectionCards
-              report={report.report}
-              limit={isUnlocked ? undefined : 4}
-              locked={!isUnlocked}
-              variant="warm"
-            />
-          </div>
-          <p className="mt-6 text-xs text-[#8a7560]">
-            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"}。内容仅供娱乐和自我探索。
-          </p>
-        </article>
-
-        <section className="mt-6 border border-[#dfd2c1] bg-white p-5">
-          <div className="flex flex-col gap-3 border-b border-[#e5d7c5] pb-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-[#9a563f]">四维追问室</p>
-              <h2 className="mt-2 text-2xl font-semibold">像聊天一样继续深挖</h2>
-              <p className="mt-3 text-sm leading-7 text-[#6f6254]">
-                系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。四维追问室为单独深度解析服务，解锁价 {siteConfig.followupPriceLabel}。
-              </p>
-            </div>
-            <div className="w-fit border border-[#dfd2c1] bg-[#fffaf2] px-3 py-2 text-xs font-semibold text-[#6f6254]">
-              {isFollowupRoomUnlocked ? `已追问 ${followupHistory.length} 次` : `未解锁 · ${siteConfig.followupPriceLabel}`}
-            </div>
-          </div>
-
-          {!isFollowupRoomUnlocked ? (
-            <div className="mt-5 border border-[#d7aa55]/35 bg-[#fff6df] p-4">
-              <p className="text-sm font-bold text-[#1d1a16]">
-                解锁四维追问室 · {siteConfig.followupPriceLabel}
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[#6f6254]">
-                适合继续深挖事业卡点、副业方向、亲密关系、财富节奏和未来30天行动。未解锁前可以查看问题示例，但不能生成解析。
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowFollowupPayment(true)}
-                className="mt-3 h-11 bg-[#1d1a16] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
-              >
-                解锁四维追问室 ¥{siteConfig.followupPrice}
-              </button>
-            </div>
-          ) : null}
-
-          {followupHistory.length ? (
-            <div className="mt-5 space-y-4">
-              {followupHistory.map((item) => (
-                <article key={item.id} className="grid gap-3">
-                  <div className="ml-auto max-w-[88%] bg-[#1d1a16] px-4 py-3 text-sm leading-7 text-[#fff8ec]">
-                    {item.question}
-                  </div>
-                  <div className="max-w-[92%] border border-[#e5d7c5] bg-[#fffaf2] px-4 py-3">
-                    <p className="text-xs font-semibold text-[#9a563f]">
-                      {item.mode === "ai" ? "玄机 AI 深度解析" : "演示深化内容"}
-                    </p>
-                    <div className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.answer}</div>
-                    <p className="mt-3 text-xs text-[#8a7560]">
-                      {new Date(item.createdAt).toLocaleString("zh-CN")}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-5 border border-[#e5d7c5] bg-[#fffaf2] px-4 py-3 text-sm text-[#6f6254]">
-              还没有追问。先从下方选择一个方向，或者输入自己的具体问题。
-            </p>
-          )}
-
-          <div className="mt-4 grid gap-2 md:grid-cols-2">
-            {followupPresets.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => handleFollowup(preset)}
-                disabled={isFollowupLoading}
-                className="border border-[#d9c7b2] bg-[#fffaf2] px-4 py-3 text-left text-sm font-semibold leading-6 transition hover:border-[#9a563f] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          <label className="mt-5 grid gap-2 text-sm font-medium">
-            自定义追问
-            <textarea
-              rows={3}
-              value={followupQuestion}
-              onChange={(event) => setFollowupQuestion(event.target.value)}
-              className="resize-none border border-[#d9c7b2] bg-white px-3 py-3 outline-none transition focus:border-[#9a563f]"
-              placeholder="例如：我适合做副业吗？未来三个月怎么行动？"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => handleFollowup()}
-            disabled={isFollowupLoading}
-            className="mt-3 h-11 bg-[#1d1a16] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isFollowupLoading ? "正在深化生成..." : isFollowupRoomUnlocked ? "继续深化这个问题" : `解锁后继续追问 ¥${siteConfig.followupPrice}`}
-          </button>
-          {!isUnlocked ? (
             <button
               type="button"
               onClick={() => setShowPayment(true)}
-              className="ml-0 mt-3 h-11 border border-[#9a563f] bg-[#fffaf2] px-5 text-sm font-semibold text-[#9a563f] transition hover:bg-[#9a563f] hover:text-white sm:ml-2"
+              className="mt-5 h-13 w-full bg-[linear-gradient(100deg,#8a5a18,#e7c46c,#9a671e)] px-5 font-black text-[#17130c] sm:w-auto"
             >
-              查看支付信息
+              解锁我的完整人生报告 {siteConfig.fullReportPriceLabel}
             </button>
-          ) : null}
-          {followupHistory.length ? (
+          </section>
+        ) : (
+          <section className="mt-6 border border-[#d7aa55]/35 bg-[#101412] p-5 sm:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d7aa55]">
+              Four-Dimensional Follow-up
+            </p>
+            <h2 className="mt-3 text-2xl font-black">四维追问室</h2>
+            <p className="mt-3 text-sm leading-7 text-[#c9c0b1]">
+              围绕当前报告继续追问事业、财富、关系或行动计划。追问室单独解锁 {siteConfig.followupPriceLabel}，服务器核验后才能生成答案。
+            </p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {followupPresets.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => void askFollowup(preset)}
+                  disabled={followupLoading}
+                  className="border border-[#d7aa55]/25 bg-[#161b18] px-4 py-3 text-left text-sm font-bold leading-6"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              rows={3}
+              className="mt-4 w-full resize-none border border-[#d7aa55]/25 bg-[#0b0f0d] px-4 py-3 text-sm outline-none focus:border-[#d7aa55]"
+              placeholder="输入你现在最想解决的具体问题"
+            />
             <button
               type="button"
-              onClick={handleClearFollowups}
-              className="ml-0 mt-3 h-11 border border-[#d9c7b2] bg-white px-5 text-sm font-semibold transition hover:border-[#9a563f] sm:ml-2"
+              onClick={() => void askFollowup()}
+              disabled={followupLoading}
+              className="mt-3 h-12 w-full bg-[#d7aa55] px-5 font-black text-[#17130c] disabled:opacity-50 sm:w-auto"
             >
-              清空追问历史
+              {followupLoading ? "正在生成专属解析..." : `继续深度追问 ${siteConfig.followupPriceLabel}`}
             </button>
-          ) : null}
+            {followup ? (
+              <article className="mt-5 border border-[#d7aa55]/30 bg-[#fffaf2] p-5 text-[#2c271f]">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9a671e]">
+                  专属追问解析
+                </p>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-8">{followup.answer}</p>
+              </article>
+            ) : null}
+          </section>
+        )}
 
-          {followupError ? (
-            <p className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {followupError}
-            </p>
-          ) : null}
-
-          {followup ? (
-            <p className="mt-4 text-xs text-[#8a7560]">
-              最新深化模式：{followup.mode === "ai" ? "玄机 AI 深化" : "演示深化"}。内容仅供娱乐和自我探索。
-            </p>
-          ) : null}
-        </section>
-      </section>
+        <p className="mt-6 text-center text-xs leading-6 text-[#817a70]">
+          本报告用于自我探索、认知复盘与成长参考，不替代医疗、法律、投资、婚恋等专业决策。
+        </p>
+      </div>
 
       {showPayment ? (
         <PaymentUnlockPanel
-          reportId={report.id}
+          reportId={reportId}
           productType="full_report"
-          productName="完整深度报告"
-          priceLabel={siteConfig.fullReportPriceLabel}
-          onUnlock={handleUnlock}
+          onUnlock={handleFullReportPaid}
           onClose={() => setShowPayment(false)}
         />
       ) : null}
@@ -445,12 +311,12 @@ export function ReportDetail({ reportId }: { reportId: string }) {
       {showFollowupPayment ? (
         <PaymentUnlockPanel
           title="解锁四维追问室"
-          description="一次解锁后，可围绕当前报告继续深挖事业、财富、关系和行动计划。适合已经看完报告、还想继续问具体问题的用户。"
+          description="付款核验后，可以基于当前完整报告继续生成一次专属深度解析。"
+          reportId={reportId}
+          productType="followup_room"
           productName="四维追问室"
           priceLabel={siteConfig.followupPriceLabel}
-          reportId={report.id}
-          productType="followup_room"
-          onUnlock={handleFollowupUnlock}
+          onUnlock={handleFollowupPaid}
           onClose={() => setShowFollowupPayment(false)}
         />
       ) : null}

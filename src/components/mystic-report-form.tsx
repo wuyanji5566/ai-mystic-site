@@ -1,32 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
-import type { MysticInput } from "@/lib/mystic";
-import {
-  getFreeReportUsage,
-  markFreeReportGenerated,
-} from "@/lib/account-storage";
-import {
-  saveReportWithCloudFallback,
-  unlockReport,
-  type ReportStorageMode,
-  type SavedMysticReport,
-} from "@/lib/report-storage";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
-import { FreeSummaryReport } from "@/components/free-summary-report";
 import { ReportSectionCards } from "@/components/report-section-cards";
-import { legalLinks, standardDisclaimer } from "@/lib/legal-copy";
+import type { MysticInput, MysticProfile } from "@/lib/mystic";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
-  profile: {
-    zodiac: string;
-    westernSign: string;
-    yearPillar: string;
-    birthSummary: string;
-  };
+  reportId: string;
+  createdAt: string;
+  profile: MysticProfile;
   report: string;
+  freeReport: string;
+  lockedSections: string[];
   mode: "ai" | "demo";
   statusMessage: string;
 };
@@ -35,127 +22,27 @@ const initialForm: MysticInput = {
   name: "",
   gender: "未透露",
   birthDate: "",
-  birthTime: "",
+  birthTime: "12:00",
+  birthTimeNote: "",
   birthPlace: "",
   calendarType: "solar",
   mbtiType: "不确定",
   mbtiCertainty: "unknown",
-  focus: "事业方向和未来一年建议",
+  focus: "",
 };
 
-const focusPresets = [
+const focusOptions = [
   "事业",
   "财富",
   "感情",
   "婚姻",
-  "人际关系",
+  "健康",
   "人生方向",
-  "未来一年",
-  "30天行动建议",
+  "副业",
+  "转型",
+  "亲子",
+  "家庭",
 ];
-
-const reportIntentPresets = [
-  {
-    title: "自我探索",
-    desc: "适合想看懂性格底色、内在优势和反复卡住的模式。",
-    focus:
-      "请按自我探索方式分析我，重点拆解核心人格、底层模式、长期优势、反复卡点和未来 30 天调整建议。",
-  },
-  {
-    title: "事业规划",
-    desc: "适合重点看职业定位、适合环境、转型方向和副业路径。",
-    focus:
-      "请重点分析我的事业定位、适合赛道、工作环境、转型方向、副业路径，以及未来 30 天可执行动作。",
-  },
-  {
-    title: "感情分析",
-    desc: "适合看亲密关系、沟通模式、安全感和关系风险点。",
-    focus:
-      "请重点分析我的亲密关系模式、沟通方式、安全感需求、边界感、关系风险点和未来 30 天关系调整建议。",
-  },
-  {
-    title: "年度复盘",
-    desc: "适合看未来一年节奏、阶段机会、风险提醒和行动重点。",
-    focus:
-      "请重点分析我未来一年的阶段节奏、关键机会、容易错过的风险、财富与关系提醒，以及每个阶段的行动重点。",
-  },
-  {
-    title: "咨询预览",
-    desc: "适合付费咨询前，先快速看自己最值得深入的问题。",
-    focus:
-      "请按付费咨询前预览方式分析我，指出我当前最值得深入的问题、最核心的卡点、适合追问的方向和 30 天初步行动。",
-  },
-];
-
-const generationHighlights = [
-  ["01", "资料建模", "出生信息、地点、时间、MBTI 与当前关注点"],
-  ["02", "四维融合", "紫微视角、八字节律、星座能量、行为模式"],
-  ["03", "报告输出", "免费摘要、完整版解锁、继续深度追问"],
-];
-
-const generationStatusSteps = [
-  "正在读取出生节律",
-  "正在构建紫微结构",
-  "正在识别星座能量",
-  "正在匹配 MBTI 行为模式",
-  "正在生成四维交叉画像",
-  "正在输出你的免费摘要",
-];
-
-const currentYear = new Date().getFullYear();
-const birthMonths = Array.from({ length: 12 }, (_, index) => index + 1);
-const hours = Array.from({ length: 24 }, (_, index) => index);
-const minutes = Array.from({ length: 12 }, (_, index) => index * 5);
-
-const formSteps = [
-  ["01", "基础信息", "用于建立你的出生节律与人生阶段参考。"],
-  ["02", "人格关注", "用于识别你的行为模式、关系需求与现实困惑。"],
-  ["03", "生成摘要", "AI 将融合四维模型，输出你的免费核心画像。"],
-] as const;
-
-type FormStep = 1 | 2 | 3;
-
-const birthTimeModes = [
-  ["precise", "精确时间"],
-  ["period", "按时辰选"],
-  ["unknown", "不知道时间"],
-] as const;
-
-const timePeriodPresets = [
-  ["子时", "00:00", "23:00-00:59"],
-  ["丑时", "01:00", "01:00-02:59"],
-  ["寅时", "03:00", "03:00-04:59"],
-  ["卯时", "05:00", "05:00-06:59"],
-  ["辰时", "07:00", "07:00-08:59"],
-  ["巳时", "09:00", "09:00-10:59"],
-  ["午时", "11:00", "11:00-12:59"],
-  ["未时", "13:00", "13:00-14:59"],
-  ["申时", "15:00", "15:00-16:59"],
-  ["酉时", "17:00", "17:00-18:59"],
-  ["戌时", "19:00", "19:00-20:59"],
-  ["亥时", "21:00", "21:00-22:59"],
-] as const;
-
-function getDaysInMonth(year: string, month: string) {
-  const parsedYear = Number(year || currentYear);
-  const parsedMonth = Number(month || 1);
-  return new Date(parsedYear, parsedMonth, 0).getDate();
-}
-
-function splitBirthDate(date: string) {
-  const [year = "", month = "", day = ""] = date.split("-");
-  return { year, month, day };
-}
-
-function buildBirthDate(year: string, month: string, day: string) {
-  if (!year || !month || !day) return "";
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-function splitBirthTime(time: string) {
-  const [hour = "", minute = ""] = time.split(":");
-  return { hour, minute };
-}
 
 const mbtiTypes = [
   "不确定",
@@ -177,957 +64,523 @@ const mbtiTypes = [
   "ESFP",
 ];
 
-const inputClass =
-  "h-12 border border-[#d7aa55]/26 bg-[#0f1412] px-4 text-[#fff8ec] outline-none transition placeholder:text-[#8b948d] focus:border-[#d7aa55] focus:bg-[#121a17]";
+const ritualSteps = [
+  "正在读取出生节律",
+  "正在构建紫微结构",
+  "正在识别星座能量",
+  "正在匹配 MBTI 行为模式",
+  "正在生成四维交叉画像",
+  "正在输出你的免费摘要",
+];
 
-const labelClass = "grid gap-2 text-sm font-semibold text-[#f1e6d2]";
+const fieldClass =
+  "h-12 w-full border border-[#d7aa55]/25 bg-[#0b100e] px-4 text-[#fff8ec] outline-none transition placeholder:text-[#777f78] focus:border-[#d7aa55]";
 
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
-  const [activeStep, setActiveStep] = useState<FormStep>(1);
-  const [selectedIntent, setSelectedIntent] = useState(reportIntentPresets[0].title);
-  const [selectedFocusTags, setSelectedFocusTags] = useState<string[]>([]);
-  const [birthDateDraft, setBirthDateDraft] = useState(() => splitBirthDate(initialForm.birthDate));
-  const [birthTimeDraft, setBirthTimeDraft] = useState(() => splitBirthTime(initialForm.birthTime));
-  const [birthTimeMode, setBirthTimeMode] =
-    useState<(typeof birthTimeModes)[number][0]>("precise");
-  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [unknownTime, setUnknownTime] = useState(false);
+  const [selectedFocus, setSelectedFocus] = useState<string[]>([]);
+  const [accepted, setAccepted] = useState(false);
   const [report, setReport] = useState<ReportResponse | null>(null);
-  const [savedReport, setSavedReport] = useState<SavedMysticReport | null>(null);
-  const [storageMode, setStorageMode] = useState<ReportStorageMode>("local");
-  const [copyMessage, setCopyMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [ritualIndex, setRitualIndex] = useState(0);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
-  const [isCurrentReportUnlocked, setIsCurrentReportUnlocked] = useState(false);
-  const [generationStepIndex, setGenerationStepIndex] = useState(0);
-  const [showMobileCta, setShowMobileCta] = useState(false);
-  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const formRef = useRef<HTMLFormElement | null>(null);
   const reportRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (!isLoading) return;
+  const focusText = useMemo(() => {
+    const custom = form.focus.trim();
+    return [selectedFocus.join("、"), custom].filter(Boolean).join("；");
+  }, [form.focus, selectedFocus]);
 
-    const timer = window.setInterval(() => {
-      setGenerationStepIndex((index) =>
-        Math.min(index + 1, generationStatusSteps.length - 1),
-      );
-    }, 900);
-
-    return () => window.clearInterval(timer);
-  }, [isLoading]);
-
-  useEffect(() => {
-    const target = sectionRef.current;
-    if (!target || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowMobileCta(entry.isIntersecting);
-      },
-      { threshold: 0.12 },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setReport(null);
-    setSavedReport(null);
-    setCopyMessage("");
-    setIsCurrentReportUnlocked(false);
-
-    const stepError = getStepError(3);
-    if (stepError) {
-      setError(stepError);
-      setActiveStep(stepError.includes("MBTI") || stepError.includes("方向") ? 2 : 1);
-      return;
-    }
-
-    if (!form.birthTime) {
-      setError("请选择出生时间。如果不确定，可以选择“不知道时间”。");
-      return;
-    }
-
-    if (!hasAcceptedTerms) {
-      setError("请先阅读并勾选用户服务协议、隐私政策和免责声明。");
-      setActiveStep(3);
-      return;
-    }
-
-    const requestInput = {
-      ...form,
-      name: form.name.trim() || "匿名用户",
-    };
-    const hasUsedFreeReport = getFreeReportUsage().count >= siteConfig.freeReportsPerUser;
-    const minimumGenerationRitual = new Promise<void>((resolve) => {
-      window.setTimeout(resolve, 4300);
-    });
-
-    setGenerationStepIndex(0);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/mystic-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestInput),
-      });
-      const data = (await response.json()) as unknown;
-
-      if (!response.ok) {
-        const errorData = data as { error?: string };
-        throw new Error(errorData.error || "生成失败，请稍后再试。");
-      }
-
-      const reportData = data as ReportResponse;
-
-      try {
-        const saved = await saveReportWithCloudFallback({
-          input: requestInput,
-          profile: reportData.profile,
-          report: reportData.report,
-          mode: reportData.mode,
-          statusMessage: reportData.statusMessage,
-        });
-        setSavedReport(saved.report);
-        setStorageMode(saved.storage);
-      } catch (storageError) {
-        console.error("Report generated but local save failed:", storageError);
-        setSavedReport(null);
-        setStorageMode("local");
-        setCopyMessage("报告已生成，但当前浏览器阻止了本地保存；请先截图或复制摘要。");
-      }
-
-      try {
-        markFreeReportGenerated();
-      } catch (usageError) {
-        console.error("Report generated but usage counter failed:", usageError);
-      }
-
-      if (hasUsedFreeReport) {
-        setCopyMessage(
-          `已为你生成新的免费摘要。完整版深度解析 ${siteConfig.fullReportPriceLabel} 可扫码解锁。`,
-        );
-      }
-
-      await minimumGenerationRitual;
-      setGenerationStepIndex(generationStatusSteps.length - 1);
-      setReport(reportData);
-      window.setTimeout(() => {
-        reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "生成失败，请稍后再试。");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function copyReportLink() {
-    if (!savedReport) return;
-    const url = `${window.location.origin}/report/${savedReport.id}`;
-    await navigator.clipboard.writeText(url);
-    setCopyMessage(
-      storageMode === "cloud"
-        ? "云端详情链接已复制，可以在其他设备访问。"
-        : "本地详情链接已复制。当前还没配置 Supabase，跨设备分享需要先接数据库。",
-    );
-  }
-
-  async function copyReportText() {
-    if (!report) return;
-    const preview = report.report.split("\n").slice(0, 12).join("\n");
-    await navigator.clipboard.writeText(
-      `${preview}\n\n【完整版内容已隐藏】\n解锁后可查看完整深度分析、继续追问和行动计划。`,
-    );
-    setCopyMessage("免费摘要已复制。完整版内容需要解锁后查看。");
-  }
-
-  function handleCurrentReportUnlock() {
-    if (savedReport) unlockReport(savedReport.id);
-    setIsCurrentReportUnlocked(true);
-    setShowPayment(false);
-    setCopyMessage("完整版已解锁。完整深度报告已在下方自动展开。");
-    window.setTimeout(() => {
-      reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-  }
-
-  const birthDays = Array.from(
-    { length: getDaysInMonth(birthDateDraft.year, birthDateDraft.month) },
-    (_, index) => index + 1,
+  const birthYears = useMemo(
+    () =>
+      Array.from(
+        { length: new Date().getFullYear() - 1919 },
+        (_, index) => String(new Date().getFullYear() - index),
+      ),
+    [],
   );
+  const daysInSelectedMonth = useMemo(() => {
+    if (!birthYear || !birthMonth) return 31;
+    return new Date(Number(birthYear), Number(birthMonth), 0).getDate();
+  }, [birthMonth, birthYear]);
 
-  function getStepError(step: FormStep) {
-    if (step >= 1) {
-      if (!form.birthDate) return "请选择完整的出生日期。";
-      if (!form.birthTime) return "请选择出生时间。如果不确定，可以选择“不知道时间”。";
+  useEffect(() => {
+    if (!loading) return;
+    const timer = window.setInterval(() => {
+      setRitualIndex((current) => Math.min(current + 1, ritualSteps.length - 1));
+    }, 760);
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
+  function update<K extends keyof MysticInput>(key: K, value: MysticInput[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateBirthDate(year: string, month: string, day: string) {
+    const maxDay =
+      year && month ? new Date(Number(year), Number(month), 0).getDate() : 31;
+    const safeDay = day ? String(Math.min(Number(day), maxDay)) : "";
+    setBirthYear(year);
+    setBirthMonth(month);
+    setBirthDay(safeDay);
+    update(
+      "birthDate",
+      year && month && safeDay
+        ? `${year}-${month.padStart(2, "0")}-${safeDay.padStart(2, "0")}`
+        : "",
+    );
+  }
+
+  function validate(targetStep: 1 | 2 | 3) {
+    if (targetStep >= 1) {
+      if (!form.birthDate) return "请选择完整出生日期。";
       if (!form.birthPlace.trim()) return "请填写出生地点。";
     }
-
-    if (step >= 2) {
-      if (!form.mbtiType) return "请选择 MBTI 类型；如果不确定，可以选择“不确定”。";
-      if (form.focus.trim().length < 4) return "请写下你最想看的方向。";
+    if (targetStep >= 2 && focusText.length < 4) {
+      return "请选择关注方向，或补充你现在最困惑的问题。";
     }
-
+    if (targetStep >= 3 && !accepted) {
+      return "请先确认已阅读隐私与内容边界说明。";
+    }
     return "";
   }
 
-  function goNextStep() {
-    const errorMessage = getStepError(activeStep);
-    if (errorMessage) {
-      setError(errorMessage);
+  function nextStep() {
+    const issue = validate(step);
+    if (issue) {
+      setError(issue);
       return;
     }
-
     setError("");
-    setActiveStep((step) => (step === 1 ? 2 : 3));
+    setStep((current) => (current === 1 ? 2 : 3));
   }
 
-  function goPrevStep() {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const issue = validate(3);
+    if (issue) {
+      setError(issue);
+      return;
+    }
+
+    setLoading(true);
+    setRitualIndex(0);
     setError("");
-    setActiveStep((step) => (step === 3 ? 2 : 1));
-  }
+    setMessage("");
+    setReport(null);
+    const minimumRitual = new Promise((resolve) => window.setTimeout(resolve, 4300));
 
-  function updateBirthDate(part: "year" | "month" | "day", value: string) {
-    const next = { ...birthDateDraft, [part]: value };
-    const maxDay = getDaysInMonth(next.year, next.month);
-    const nextDay = next.day && Number(next.day) > maxDay ? String(maxDay) : next.day;
-    const nextDraft = { ...next, day: nextDay };
-    setBirthDateDraft(nextDraft);
-    setForm({
-      ...form,
-      birthDate: buildBirthDate(nextDraft.year, nextDraft.month, nextDraft.day),
-    });
-  }
-
-  function updatePreciseBirthTime(part: "hour" | "minute", value: string) {
-    const next = { ...birthTimeDraft, [part]: value };
-    setBirthTimeDraft(next);
-    setForm({
-      ...form,
-      birthTime: next.hour && next.minute ? `${next.hour.padStart(2, "0")}:${next.minute.padStart(2, "0")}` : "",
-      birthTimeNote: "用户提供了具体出生时间",
-    });
-  }
-
-  function selectBirthTimeMode(mode: (typeof birthTimeModes)[number][0]) {
-    setBirthTimeMode(mode);
-    if (mode === "unknown") {
-      setSelectedPeriod("");
-      setBirthTimeDraft({ hour: "12", minute: "00" });
-      setForm({
-        ...form,
-        birthTime: "12:00",
-        birthTimeNote: "用户不确定具体出生时间，仍可生成报告，但紫微和八字精度会降低",
+    try {
+      const response = await fetch("/api/reports/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          name: form.name.trim() || "匿名用户",
+          birthTime: unknownTime ? "12:00" : form.birthTime,
+          birthTimeNote: unknownTime ? "出生时间不确定，精度会降低" : form.birthTimeNote,
+          focus: focusText,
+          mbtiCertainty: form.mbtiType === "不确定" ? "unknown" : form.mbtiCertainty,
+        }),
       });
-      return;
-    }
-
-    if (mode === "period") {
-      setSelectedPeriod("");
-      setBirthTimeDraft({ hour: "", minute: "" });
-      setForm({
-        ...form,
-        birthTime: "",
-        birthTimeNote: "用户准备按传统时辰选择出生时间",
-      });
-      return;
-    }
-
-    if (mode === "precise") {
-      setSelectedPeriod("");
-      setBirthTimeDraft({ hour: "", minute: "" });
-      setForm({
-        ...form,
-        birthTime: "",
-        birthTimeNote: "用户提供了具体出生时间",
-      });
+      const data = (await response.json()) as ReportResponse & { error?: string };
+      if (!response.ok) throw new Error(data.error || "报告生成失败");
+      await minimumRitual;
+      setReport(data);
+      window.setTimeout(
+        () => reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        80,
+      );
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "报告生成失败，请稍后重试。");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function selectTimePeriod(label: string, time: string, range: string) {
-    setSelectedPeriod(label);
-    setBirthTimeDraft(splitBirthTime(time));
-    setForm({
-      ...form,
-      birthTime: time,
-      birthTimeNote: `用户按传统时辰选择了${label}（${range}），系统取该时辰代表时间做参考`,
-    });
-  }
-
-  function toggleFocusTag(tag: string) {
-    const nextTags = selectedFocusTags.includes(tag)
-      ? selectedFocusTags.filter((item) => item !== tag)
-      : [...selectedFocusTags, tag];
-    setSelectedFocusTags(nextTags);
-
-    if (nextTags.length) {
-      setForm({
-        ...form,
-        focus: `我想重点看：${nextTags.join("、")}。请结合我的出生信息、MBTI 和当前状态，生成具体分析与行动建议。`,
-      });
-    }
+  function handlePaid(orderId: string) {
+    if (!report) return;
+    window.location.href = `/report/${report.reportId}?orderId=${encodeURIComponent(orderId)}`;
   }
 
   return (
-    <section
-      ref={sectionRef}
-      id="report-form"
-      className="w-full border border-[#d7aa55]/24 bg-[#101713]/94 p-5 text-[#f5efe2] shadow-2xl shadow-black/45 sm:p-6"
-    >
-      <div className="flex flex-col gap-4 border-b border-[#f5efe2]/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7aa55]">
-            Self Insight Console
-          </p>
-          <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl text-[#fff8ec]">
-            开始生成你的四维人生画像
-          </h2>
-          <p className="mt-3 max-w-lg text-sm leading-7 text-[#cfc2ae]">
-            信息越具体，报告越像一次一对一咨询；不知道出生时间也可以生成，但八字与紫微精度会降低。
-          </p>
-        </div>
-        <Link
-          href="/reports"
-          className="w-fit border border-[#d7aa55]/30 px-3 py-2 text-xs font-bold text-[#d7aa55] transition hover:bg-[#d7aa55] hover:text-[#121714]"
-        >
-          历史报告
-        </Link>
+    <section id="report-form" className="scroll-mt-4">
+      <header className="mb-6 text-center">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-[#d7aa55]">
+          Build Your Profile
+        </p>
+        <h2 className="mt-3 text-3xl font-black text-[#fff8ec] sm:text-4xl">
+          开始生成你的四维人生画像
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-[#bbb4a8]">
+          信息越具体，报告越像一次一对一咨询；不知道出生时间也可以生成，但八字与紫微精度会降低。
+        </p>
+      </header>
+
+      <div className="mb-5 grid grid-cols-3 gap-2">
+        {[
+          ["01", "基础信息"],
+          ["02", "人格关注"],
+          ["03", "确认生成"],
+        ].map(([number, label], index) => {
+          const active = index + 1 === step;
+          const completed = index + 1 < step;
+          return (
+            <div
+              key={number}
+              className={`border px-3 py-3 text-center ${
+                active
+                  ? "border-[#d7aa55] bg-[#d7aa55]/12"
+                  : "border-[#d7aa55]/18 bg-[#111513]"
+              }`}
+            >
+              <span className="block text-xs font-black text-[#d7aa55]">{number}</span>
+              <strong className={`mt-1 block text-xs sm:text-sm ${completed ? "text-[#d7aa55]" : ""}`}>
+                {label}
+              </strong>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="mt-5 grid gap-3 border border-[#d7aa55]/18 bg-[#0f1412] p-4 text-sm text-[#d8cdb9] sm:grid-cols-3">
-        <p>
-          <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-            Time
-          </span>
-          <strong className="mt-2 block text-[#fff8ec]">约 2 分钟完成</strong>
-        </p>
-        <p>
-          <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-            Analysis Stack
-          </span>
-          <strong className="mt-2 block text-[#fff8ec]">紫微 / 八字 / 星座 / MBTI</strong>
-        </p>
-        <p>
-          <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-            Result
-          </span>
-          <strong className="mt-2 block text-[#fff8ec]">先看完整免费诊断</strong>
-        </p>
-      </div>
-
-      <div className="mt-5 grid gap-3 lg:grid-cols-3">
-        {generationHighlights.map(([step, title, desc]) => (
-          <article key={step} className="border border-[#f5efe2]/10 bg-[#121a17] p-4">
-            <p className="text-xs font-bold text-[#d7aa55]">{step}</p>
-            <h3 className="mt-3 text-sm font-bold text-[#fff8ec]">{title}</h3>
-            <p className="mt-2 text-xs leading-5 text-[#c7baa6]">{desc}</p>
-          </article>
-        ))}
-      </div>
-
-      <form ref={formRef} className="mt-6 grid gap-4" onSubmit={handleSubmit}>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {formSteps.map(([number, title, desc], index) => {
-            const step = (index + 1) as FormStep;
-            return (
-              <button
-                key={number}
-                type="button"
-                onClick={() => {
-                  if (step < activeStep) setActiveStep(step);
-                }}
-                className={`border p-3 text-left transition ${
-                  activeStep === step
-                    ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
-                    : activeStep > step
-                      ? "border-[#2f9c89]/35 bg-[#0f1917] text-[#aef2dd]"
-                      : "border-[#f5efe2]/12 bg-[#0f1412] text-[#cfc2ae]"
-                }`}
-              >
-                <span className="text-xs font-bold">{number}</span>
-                <span className="mt-2 block text-sm font-bold">{title}</span>
-                <span className="mt-1 block text-xs leading-5 opacity-80">{desc}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {activeStep === 1 ? (
-          <div className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-[1fr_0.7fr]">
-              <label className={labelClass}>
-                姓名/昵称（可选）
-                <input
-                  value={form.name}
-                  onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  className={inputClass}
-                  placeholder="可不填，不填则以匿名用户生成"
-                />
-              </label>
-              <label className={labelClass}>
-                性别
-                <select
-                  value={form.gender}
-                  onChange={(event) => setForm({ ...form, gender: event.target.value })}
-                  className={inputClass}
-                >
-                  <option>未透露</option>
-                  <option>女</option>
-                  <option>男</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-[0.7fr_1.3fr]">
-              <label className={labelClass}>
-                历法
-                <select
-                  value={form.calendarType}
-                  onChange={(event) =>
-                    setForm({ ...form, calendarType: event.target.value as "solar" | "lunar" })
-                  }
-                  className={inputClass}
-                >
-                  <option value="solar">公历</option>
-                  <option value="lunar">农历</option>
-                </select>
-              </label>
-
-              <div className={labelClass}>
-                <div className="flex items-center justify-between gap-3">
-                  <span>出生日期</span>
-                  <span className="text-xs font-normal text-[#9fa89f]">
-                    {form.birthDate || "请选择年月日"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[1.15fr_0.85fr_0.85fr] gap-2">
-                  <input
-                    required
-                    type="number"
-                    inputMode="numeric"
-                    min={1940}
-                    max={currentYear}
-                    aria-label="出生年份"
-                    value={birthDateDraft.year}
-                    onChange={(event) => updateBirthDate("year", event.target.value)}
-                    className={inputClass}
-                    placeholder="年份"
-                  />
-                  <select
-                    required
-                    aria-label="出生月份"
-                    value={birthDateDraft.month ? String(Number(birthDateDraft.month)) : ""}
-                    onChange={(event) => updateBirthDate("month", event.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">月</option>
-                    {birthMonths.map((month) => (
-                      <option key={month} value={month}>
-                        {month} 月
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    required
-                    aria-label="出生日期"
-                    value={birthDateDraft.day ? String(Number(birthDateDraft.day)) : ""}
-                    onChange={(event) => updateBirthDate("day", event.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">日</option>
-                    {birthDays.map((day) => (
-                      <option key={day} value={day}>
-                        {day} 日
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-[1.1fr_0.9fr]">
-              <div className={labelClass}>
-                <div className="flex items-center justify-between gap-3">
-                  <span>出生时间</span>
-                  <span className="text-xs font-normal text-[#9fa89f]">
-                    {form.birthTimeNote || form.birthTime || "请选择时间"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {birthTimeModes.map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => selectBirthTimeMode(mode)}
-                      className={`h-11 border px-2 text-xs font-bold transition ${
-                        birthTimeMode === mode
-                          ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
-                          : "border-[#f5efe2]/12 bg-[#0f1412] text-[#cfc2ae] hover:border-[#d7aa55]"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                {birthTimeMode === "precise" ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      required
-                      aria-label="出生小时"
-                      value={birthTimeDraft.hour ? String(Number(birthTimeDraft.hour)) : ""}
-                      onChange={(event) => updatePreciseBirthTime("hour", event.target.value)}
-                      className={inputClass}
-                    >
-                      <option value="">小时</option>
-                      {hours.map((hour) => (
-                        <option key={hour} value={hour}>
-                          {String(hour).padStart(2, "0")} 点
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      required
-                      aria-label="出生分钟"
-                      value={birthTimeDraft.minute ? String(Number(birthTimeDraft.minute)) : ""}
-                      onChange={(event) => updatePreciseBirthTime("minute", event.target.value)}
-                      className={inputClass}
-                    >
-                      <option value="">分钟</option>
-                      {minutes.map((minute) => (
-                        <option key={minute} value={minute}>
-                          {String(minute).padStart(2, "0")} 分
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-
-                {birthTimeMode === "period" ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {timePeriodPresets.map(([label, time, range]) => (
-                      <button
-                        key={label}
-                        type="button"
-                        onClick={() => selectTimePeriod(label, time, range)}
-                        className={`border px-2 py-2 text-left text-xs leading-5 transition ${
-                          selectedPeriod === label
-                            ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
-                            : "border-[#f5efe2]/12 bg-[#0f1412] text-[#cfc2ae] hover:border-[#d7aa55]"
-                        }`}
-                      >
-                        <strong className="block">{label}</strong>
-                        <span>{range}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                {birthTimeMode === "unknown" ? (
-                  <p className="border border-[#d7aa55]/18 bg-[#0f1412] px-3 py-2 text-xs font-normal leading-5 text-[#cfc2ae]">
-                    不知道具体时间仍可生成报告，但紫微和八字精度会降低；系统会更多结合生日、年份、星座和 MBTI 做结构化分析。
-                  </p>
-                ) : null}
-              </div>
-
-              <label className={labelClass}>
-                出生地点
-                <input
-                  required
-                  value={form.birthPlace}
-                  onChange={(event) => setForm({ ...form, birthPlace: event.target.value })}
-                  className={inputClass}
-                  placeholder="例如：杭州"
-                />
-              </label>
-            </div>
-          </div>
-        ) : null}
-
-        {activeStep === 2 ? (
-          <div className="grid gap-4">
-            <div className="border border-[#d7aa55]/18 bg-[#0b100e] p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
-                    Report Mode
-                  </p>
-                  <h3 className="mt-2 text-xl font-bold text-[#fff8ec]">选择报告用途</h3>
-                </div>
-                <p className="max-w-sm text-xs leading-5 text-[#c7baa6]">
-                  用途越具体，生成结果越像咨询报告，而不是泛泛的性格描述。
-                </p>
-              </div>
-              <div className="mt-4 grid gap-2 md:grid-cols-2">
-                {reportIntentPresets.map((preset) => (
-                  <button
-                    key={preset.title}
-                    type="button"
-                    onClick={() => {
-                      setSelectedIntent(preset.title);
-                      setForm({ ...form, focus: preset.focus });
-                    }}
-                    className={`border p-4 text-left transition ${
-                      selectedIntent === preset.title
-                        ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
-                        : "border-[#f5efe2]/12 bg-[#101713] text-[#f5efe2] hover:border-[#d7aa55]"
-                    }`}
-                  >
-                    <span className="text-sm font-bold">{preset.title}</span>
-                    <span
-                      className={`mt-2 block text-xs leading-5 ${
-                        selectedIntent === preset.title ? "text-[#2b261c]" : "text-[#c7baa6]"
-                      }`}
-                    >
-                      {preset.desc}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
-              <label className={labelClass}>
-                MBTI 类型
-                <select
-                  value={form.mbtiType}
-                  onChange={(event) => {
-                    const mbtiType = event.target.value;
-                    setForm({
-                      ...form,
-                      mbtiType,
-                      mbtiCertainty:
-                        mbtiType === "不确定"
-                          ? "unknown"
-                          : form.mbtiCertainty === "unknown"
-                            ? "estimated"
-                            : form.mbtiCertainty,
-                    });
-                  }}
-                  className={inputClass}
-                >
-                  {mbtiTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type === "不确定" ? "不知道，系统根据描述推测" : type}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="grid gap-2">
-                <span className="text-sm font-semibold text-[#f1e6d2]">MBTI 确认度</span>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {[
-                    ["known", "做过测试，很确定"],
-                    ["estimated", "大概判断"],
-                    ["unknown", "不确定"],
-                  ].map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          mbtiCertainty: value as MysticInput["mbtiCertainty"],
-                          mbtiType: value === "unknown" ? "不确定" : form.mbtiType,
-                        })
-                      }
-                      className={`border px-3 py-3 text-left text-xs font-semibold leading-5 transition ${
-                        form.mbtiCertainty === value
-                          ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
-                          : "border-[#f5efe2]/12 text-[#cfc2ae] hover:border-[#2f9c89] hover:text-[#aef2dd]"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <label className={labelClass}>
-              你最想看的方向
-              <textarea
-                required
-                rows={4}
-                value={form.focus}
-                onChange={(event) => setForm({ ...form, focus: event.target.value })}
-                className="resize-none border border-[#d7aa55]/26 bg-[#0f1412] px-4 py-3 text-[#fff8ec] outline-none transition placeholder:text-[#8b948d] focus:border-[#d7aa55] focus:bg-[#121a17]"
-                placeholder="例如：我想知道事业定位、感情模式、财富习惯，以及未来 30 天怎么调整。"
+      <form onSubmit={handleSubmit} className="border border-[#d7aa55]/28 bg-[#101412] p-4 sm:p-6">
+        {step === 1 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2 text-sm font-bold">
+              姓名或昵称
+              <input
+                value={form.name}
+                onChange={(event) => update("name", event.target.value)}
+                className={fieldClass}
+                placeholder="不填写将使用匿名用户"
               />
             </label>
-
-            <div className="flex flex-wrap gap-2">
-              {focusPresets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => toggleFocusTag(preset)}
-                  className={`border px-3 py-2 text-xs font-semibold transition ${
-                    selectedFocusTags.includes(preset)
-                      ? "border-[#d7aa55] bg-[#d7aa55] text-[#121714]"
-                      : "border-[#f5efe2]/12 text-[#cfc2ae] hover:border-[#2f9c89] hover:text-[#aef2dd]"
-                  }`}
+            <label className="grid gap-2 text-sm font-bold">
+              性别
+              <select
+                value={form.gender}
+                onChange={(event) => update("gender", event.target.value)}
+                className={fieldClass}
+              >
+                <option>未透露</option>
+                <option>女性</option>
+                <option>男性</option>
+                <option>其他</option>
+              </select>
+            </label>
+            <fieldset className="grid gap-2 text-sm font-bold sm:col-span-2">
+              <legend>出生日期</legend>
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  aria-label="出生年份"
+                  value={birthYear}
+                  onChange={(event) =>
+                    updateBirthDate(event.target.value, birthMonth, birthDay)
+                  }
+                  className={fieldClass}
                 >
-                  {preset}
-                </button>
-              ))}
-            </div>
+                  <option value="">年份</option>
+                  {birthYears.map((year) => <option key={year}>{year}</option>)}
+                </select>
+                <select
+                  aria-label="出生月份"
+                  value={birthMonth}
+                  onChange={(event) =>
+                    updateBirthDate(birthYear, event.target.value, birthDay)
+                  }
+                  className={fieldClass}
+                >
+                  <option value="">月份</option>
+                  {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((month) => (
+                    <option key={month} value={month}>{month} 月</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="出生日期"
+                  value={birthDay}
+                  onChange={(event) =>
+                    updateBirthDate(birthYear, birthMonth, event.target.value)
+                  }
+                  className={fieldClass}
+                >
+                  <option value="">日期</option>
+                  {Array.from({ length: daysInSelectedMonth }, (_, index) => String(index + 1)).map((day) => (
+                    <option key={day} value={day}>{day} 日</option>
+                  ))}
+                </select>
+              </div>
+            </fieldset>
+            <label className="grid gap-2 text-sm font-bold sm:col-span-2">
+              出生时间
+              <input
+                type="time"
+                value={form.birthTime}
+                onChange={(event) => update("birthTime", event.target.value)}
+                disabled={unknownTime}
+                className={`${fieldClass} [color-scheme:dark] disabled:opacity-45`}
+              />
+            </label>
+            <label className="flex items-start gap-3 border border-[#d7aa55]/18 bg-black/15 p-3 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={unknownTime}
+                onChange={(event) => setUnknownTime(event.target.checked)}
+                className="mt-1 accent-[#d7aa55]"
+              />
+              <span>
+                <strong className="block">不知道出生时间</strong>
+                <span className="mt-1 block text-xs leading-6 text-[#9f988e]">
+                  仍可生成报告，系统会使用中午作为占位时间，并明确降低八字与紫微分析精度。
+                </span>
+              </span>
+            </label>
+            <label className="grid gap-2 text-sm font-bold sm:col-span-2">
+              出生地
+              <input
+                value={form.birthPlace}
+                onChange={(event) => update("birthPlace", event.target.value)}
+                className={fieldClass}
+                placeholder="例如：四川成都"
+              />
+            </label>
           </div>
         ) : null}
 
-        {activeStep === 3 ? (
+        {step === 2 ? (
+          <div className="grid gap-5">
+            <label className="grid gap-2 text-sm font-bold">
+              MBTI
+              <select
+                value={form.mbtiType}
+                onChange={(event) => {
+                  update("mbtiType", event.target.value);
+                  update("mbtiCertainty", event.target.value === "不确定" ? "unknown" : "known");
+                }}
+                className={fieldClass}
+              >
+                {mbtiTypes.map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
+              </select>
+              <span className="text-xs font-normal leading-6 text-[#9f988e]">
+                不知道可选择“不确定”，系统会减少 MBTI 标签权重。
+              </span>
+            </label>
+
+            <div>
+              <p className="text-sm font-bold">关注方向（可多选）</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {focusOptions.map((item) => {
+                  const selected = selectedFocus.includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() =>
+                        setSelectedFocus((current) =>
+                          selected ? current.filter((value) => value !== item) : [...current, item],
+                        )
+                      }
+                      className={`h-11 border text-sm font-bold ${
+                        selected
+                          ? "border-[#d7aa55] bg-[#d7aa55] text-[#17130c]"
+                          : "border-[#d7aa55]/22 bg-[#0b100e] text-[#d7d0c5]"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <label className="grid gap-2 text-sm font-bold">
+              你现在最困惑的具体问题
+              <textarea
+                rows={4}
+                value={form.focus}
+                onChange={(event) => update("focus", event.target.value)}
+                className="w-full resize-none border border-[#d7aa55]/25 bg-[#0b100e] px-4 py-3 text-[#fff8ec] outline-none placeholder:text-[#777f78] focus:border-[#d7aa55]"
+                placeholder="例如：我想转型做副业，但方向很多、执行不稳定，应该先从哪里开始？"
+              />
+            </label>
+          </div>
+        ) : null}
+
+        {step === 3 ? (
           <div className="grid gap-4">
             <div className="border border-[#d7aa55]/22 bg-[#0b100e] p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
-                Confirm
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#d7aa55]">
+                信息确认
               </p>
-              <h3 className="mt-2 text-xl font-bold text-[#fff8ec]">确认信息并生成免费摘要</h3>
-              <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                {[
-                  ["姓名/性别", `${form.name || "未填"} / ${form.gender}`],
-                  ["出生信息", `${form.calendarType === "solar" ? "公历" : "农历"} ${form.birthDate || "未填"} ${form.birthTime || "未填"}`],
-                  ["出生地点", form.birthPlace || "未填"],
-                  ["MBTI", `${form.mbtiType} / ${form.mbtiCertainty}`],
-                ].map(([label, value]) => (
-                  <p key={label} className="border border-[#f5efe2]/10 bg-[#101713] px-4 py-3">
-                    <span className="block text-xs font-bold text-[#d7aa55]">{label}</span>
-                    <strong className="mt-2 block text-[#fff8ec]">{value}</strong>
-                  </p>
-                ))}
-              </div>
-              <p className="mt-4 border border-[#2f9c89]/22 bg-[#0e1917] px-4 py-3 text-sm leading-7 text-[#c8efe4]">
-                免费摘要会展示核心性格、事业方向和关系提醒。完整版可继续解锁详细分析、30 天行动方案和后续追问。
-              </p>
-              <label className="mt-4 flex cursor-pointer gap-3 border border-[#d7aa55]/20 bg-[#17120d] p-4 text-xs leading-6 text-[#f2ddae]">
-                <input
-                  type="checkbox"
-                  checked={hasAcceptedTerms}
-                  onChange={(event) => setHasAcceptedTerms(event.target.checked)}
-                  className="mt-1 h-4 w-4 accent-[#d7aa55]"
-                />
-                <span>
-                  我已阅读并同意
-                  {legalLinks.map((link, index) => (
-                    <span key={link.href}>
-                      <Link href={link.href} className="font-bold text-[#fff8ec] underline underline-offset-4">
-                        《{link.label}》
-                      </Link>
-                      {index < legalLinks.length - 1 ? "、" : ""}
-                    </span>
-                  ))}
-                  ，理解本报告仅用于自我探索与成长参考，不构成现实决策建议。
-                </span>
-              </label>
-              <p className="mt-3 text-xs leading-6 text-[#9fa89f]">{standardDisclaimer}</p>
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                <div><dt className="text-[#888f88]">称呼</dt><dd className="mt-1 font-bold">{form.name || "匿名用户"}</dd></div>
+                <div><dt className="text-[#888f88]">出生信息</dt><dd className="mt-1 font-bold">{form.birthDate} · {unknownTime ? "时间不确定" : form.birthTime}</dd></div>
+                <div><dt className="text-[#888f88]">出生地</dt><dd className="mt-1 font-bold">{form.birthPlace}</dd></div>
+                <div><dt className="text-[#888f88]">MBTI</dt><dd className="mt-1 font-bold">{form.mbtiType}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-[#888f88]">当前关注</dt><dd className="mt-1 font-bold leading-7">{focusText}</dd></div>
+              </dl>
             </div>
+            <label className="flex items-start gap-3 border border-[#d7aa55]/18 p-4 text-sm leading-7">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(event) => setAccepted(event.target.checked)}
+                className="mt-1 accent-[#d7aa55]"
+              />
+              <span>
+                我理解本报告用于自我探索、认知复盘与成长参考，不替代医疗、法律、投资、婚恋等专业决策。
+              </span>
+            </label>
           </div>
         ) : null}
 
         {error ? (
-          <p className="border border-[#8b2732]/45 bg-[#2a1418] px-4 py-3 text-sm text-[#ffd6db]">
+          <p className="mt-4 border border-red-500/35 bg-red-950/25 px-4 py-3 text-sm text-red-200">
             {error}
           </p>
         ) : null}
 
-        <div className="grid gap-2 sm:grid-cols-[auto_1fr_auto] sm:items-center">
-          <button
-            type="button"
-            onClick={goPrevStep}
-            disabled={activeStep === 1 || isLoading}
-            className="h-12 border border-[#f5efe2]/14 px-5 text-sm font-bold text-[#cfc2ae] transition hover:border-[#d7aa55] hover:text-[#d7aa55] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            上一步
-          </button>
-          <p className="text-center text-xs leading-5 text-[#9fa89f]">
-            第 {activeStep} / 3 步 · 信息越具体，报告越像一对一咨询。
-          </p>
-          {activeStep < 3 ? (
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+          {step > 1 ? (
             <button
               type="button"
-              onClick={goNextStep}
-              disabled={isLoading}
-              className="xj-cta h-12 bg-[#d7aa55] px-6 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c] disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => setStep((current) => (current === 3 ? 2 : 1))}
+              className="h-12 border border-[#d7aa55]/25 px-6 font-bold"
             >
-              下一步 →
+              返回上一步
+            </button>
+          ) : <span />}
+          {step < 3 ? (
+            <button
+              type="button"
+              onClick={nextStep}
+              className="h-12 bg-[#d7aa55] px-7 font-black text-[#17130c]"
+            >
+              继续填写 →
             </button>
           ) : (
             <button
               type="submit"
-              disabled={isLoading || !hasAcceptedTerms}
-              className="xj-cta h-12 bg-[#d7aa55] px-6 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading}
+              className="xj-cta h-13 bg-[linear-gradient(100deg,#8a5a18,#e7c46c,#9a671e)] px-8 font-black text-[#17130c] disabled:opacity-55"
             >
-              {isLoading ? "正在生成..." : "生成我的报告 →"}
+              {loading ? "正在构建四维画像..." : "生成我的免费摘要 →"}
             </button>
           )}
         </div>
       </form>
 
-      {isLoading ? (
-        <div className="mt-4 border border-[#d7aa55]/20 bg-[#171f1b] p-4 text-sm leading-6 text-[#d8cdb9]">
-          <p className="font-bold text-[#fff8ec]">正在生成你的四维报告</p>
-          <p className="mt-2">内容较长时可能需要 10-30 秒，请不要重复点击。系统正在完成资料建模、四维融合和报告整理。</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {generationStatusSteps.map((step, index) => (
-              <div
-                key={step}
-                className={`border px-3 py-2 text-xs font-bold transition ${
-                  index <= generationStepIndex
-                    ? "border-[#d7aa55]/40 bg-[#d7aa55] text-[#121714]"
-                    : "border-[#d7aa55]/16 bg-[#0f1412] text-[#d7aa55]"
-                }`}
-              >
-                <span className="mr-2 opacity-70">{String(index + 1).padStart(2, "0")}</span>
-                {step}
+      {loading ? (
+        <section className="mt-6 border border-[#d7aa55]/35 bg-[#0c100e] p-5 sm:p-7">
+          <div className="mx-auto max-w-xl">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 animate-spin rounded-full border-2 border-[#d7aa55]/20 border-t-[#d7aa55]" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#d7aa55]">
+                  AI Fusion Engine
+                </p>
+                <h3 className="mt-1 text-xl font-black">{ritualSteps[ritualIndex]}</h3>
               </div>
-            ))}
+            </div>
+            <div className="mt-6 h-1 overflow-hidden bg-[#202620]">
+              <div
+                className="h-full bg-[#d7aa55] transition-all duration-700"
+                style={{ width: `${((ritualIndex + 1) / ritualSteps.length) * 100}%` }}
+              />
+            </div>
+            <div className="mt-5 grid gap-2">
+              {ritualSteps.map((item, index) => (
+                <p
+                  key={item}
+                  className={`text-sm ${index <= ritualIndex ? "text-[#f2d99a]" : "text-[#5f655f]"}`}
+                >
+                  {index < ritualIndex ? "✓" : index === ritualIndex ? "●" : "○"} {item}
+                </p>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
       ) : null}
 
       {report ? (
-        <article ref={reportRef} className="mt-6 scroll-mt-6 border border-[#d7aa55]/24 bg-[#f5efe2] p-5 text-[#121714]">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8b2732]">
-                Result
-              </p>
-              <h3 className="mt-2 font-[family-name:var(--font-display)] text-3xl">
-                你的四维融合报告已生成并保存
-              </h3>
+        <section ref={reportRef} className="mt-8 scroll-mt-4">
+          <header className="border border-[#d7aa55]/35 bg-[#111513] p-5 sm:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d7aa55]">
+              Free Core Diagnosis
+            </p>
+            <h2 className="mt-3 text-3xl font-black">
+              {form.name || "你"}的四维核心画像
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-[#bdb5a8]">
+              这不是四份测评的简单拼接，而是从节律、结构、情绪和行为四个角度交叉解释你当前的现实问题。
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              {[report.profile.yearPillar, report.profile.westernSign, form.mbtiType, report.profile.zodiac].map((item) => (
+                <span key={item} className="border border-[#d7aa55]/25 px-3 py-2 text-[#f2d99a]">
+                  {item}
+                </span>
+              ))}
             </div>
-            <span className="w-fit border border-[#121714]/15 px-3 py-1 text-xs font-bold">
-              {report.mode === "ai" ? "玄机 AI" : "演示回退"}
-            </span>
+          </header>
+
+          <div className="mt-4">
+            <ReportSectionCards report={report.freeReport} locked />
           </div>
 
-          <p className="mb-4 border border-[#121714]/10 bg-white px-4 py-3 text-sm text-[#52615b]">
-            保存位置：{storageMode === "cloud" ? "Supabase 云端，可跨设备分享" : "浏览器本地，仅当前设备可复看"}
-          </p>
-
-          <div className="mb-5 grid gap-2 sm:grid-cols-3">
-            {savedReport ? (
-              <Link
-                href={`/report/${savedReport.id}`}
-                className="flex h-11 items-center justify-center bg-[#121714] px-4 text-sm font-bold text-[#f5efe2] transition hover:bg-[#8b2732]"
-              >
-                查看详情页
-              </Link>
-            ) : null}
+          <section className="mt-5 border border-[#d7aa55]/45 bg-[#101412] p-5 sm:p-7">
+            <p className="text-sm font-black text-[#d7aa55]">
+              你已经看到了自己的核心画像，但最关键的事业、财富、关系和行动计划仍在完整版中。
+            </p>
+            <p className="mt-3 text-sm leading-7 text-[#bdb5a8]">
+              如果你只是随便测一测，免费摘要已经够了。如果你正在经历事业选择、关系困惑、自我重建、财富转型或人生方向混乱，完整版更像一份给自己的深度复盘报告。
+            </p>
             <button
               type="button"
-              onClick={copyReportLink}
-              disabled={!savedReport}
-              className="h-11 border border-[#121714]/18 bg-white px-4 text-sm font-bold transition hover:border-[#8b2732] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => setShowPayment(true)}
+              className="xj-cta mt-5 h-13 w-full bg-[linear-gradient(100deg,#8a5a18,#e7c46c,#9a671e)] px-7 font-black text-[#17130c] sm:w-auto"
             >
-              复制详情链接
+              解锁我的完整人生报告 {siteConfig.fullReportPriceLabel}
             </button>
+            <p className="mt-3 text-xs text-[#8d928d]">
+              一次解锁，适合截图保存、反复复盘。当前为 MVP 内测体验价。
+            </p>
+          </section>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={`/report/${report.reportId}`}
+              className="flex h-12 items-center justify-center border border-[#d7aa55]/30 px-5 text-sm font-bold text-[#f2d99a]"
+            >
+              打开独立报告页
+            </Link>
             <button
               type="button"
-              onClick={copyReportText}
-              className="h-11 border border-[#121714]/18 bg-white px-4 text-sm font-bold transition hover:border-[#8b2732]"
+              onClick={async () => {
+                await navigator.clipboard.writeText(report.freeReport);
+                setMessage("免费摘要已复制。");
+              }}
+              className="h-12 border border-[#d7aa55]/30 px-5 text-sm font-bold"
             >
-              复制摘要
+              复制免费摘要
             </button>
           </div>
-
-          {copyMessage ? (
-            <p className="mb-4 border border-[#121714]/10 bg-white px-4 py-3 text-sm text-[#52615b]">
-              {copyMessage}
-            </p>
-          ) : null}
-
-          <div className="grid gap-3 border-y border-[#121714]/10 py-4 text-sm sm:grid-cols-4">
-            <p>
-              <span className="block text-[#69756f]">生肖</span>
-              <strong>{report.profile.zodiac}</strong>
-            </p>
-            <p>
-              <span className="block text-[#69756f]">星座</span>
-              <strong>{report.profile.westernSign}</strong>
-            </p>
-            <p>
-              <span className="block text-[#69756f]">年柱</span>
-              <strong>{report.profile.yearPillar}</strong>
-            </p>
-            <p>
-              <span className="block text-[#69756f]">MBTI</span>
-              <strong>{form.mbtiType}</strong>
-            </p>
-          </div>
-          <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
-          <div className="mt-5">
-            <FreeSummaryReport
-              input={form}
-              profile={report.profile}
-              report={report.report}
-              onUnlock={() => setShowPayment(true)}
-            />
-          </div>
-          {isCurrentReportUnlocked ? (
-            <section className="mt-5 border border-[#d7aa55]/45 bg-[#fffaf2] p-5 text-[#121714]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#9a563f]">
-                Full Report Unlocked
-              </p>
-              <h4 className="mt-3 font-[family-name:var(--font-display)] text-3xl">
-                完整深度报告已解锁
-              </h4>
-              <p className="mt-3 text-sm leading-7 text-[#62584b]">
-                以下为完整报告正文。建议截图保存，也可以进入详情页继续追问。
-              </p>
-              <div className="mt-5">
-                <ReportSectionCards report={report.report} variant="warm" />
-              </div>
-            </section>
-          ) : null}
-          <p className="mt-5 text-xs text-[#69756f]">
-            {isCurrentReportUnlocked ? "完整报告已解锁" : "免费核心诊断已生成，请先结合自己的真实经历阅读和验证。"}
-          </p>
-        </article>
+          {message ? <p className="mt-3 text-sm text-[#f2d99a]">{message}</p> : null}
+        </section>
       ) : null}
 
-      {showMobileCta && !report ? (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#d7aa55]/35 bg-[#090b10]/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:hidden">
-          <button
-            type="button"
-            onClick={() => {
-              if (activeStep < 3) {
-                goNextStep();
-                return;
-              }
-              formRef.current?.requestSubmit();
-            }}
-            className="xj-cta flex h-12 w-full items-center justify-center bg-[#d7aa55] text-sm font-bold text-[#121714]"
-          >
-            生成我的免费摘要
-          </button>
-          <p className="mt-1 text-center text-[11px] text-[#d8cdb9]">
-            免费先看核心画像，完整版再解锁事业、财富与行动计划
-          </p>
-        </div>
-      ) : null}
-
-      {showPayment ? (
+      {showPayment && report ? (
         <PaymentUnlockPanel
-          title={report ? "完整深度报告 · 内容与解锁说明" : "解锁下一次完整报告"}
-          description={
-            report
-              ? "如果你正处在人生选择、事业转型、关系困惑或自我重建阶段，完整版更像是一份给自己的复盘报告。"
-              : "免费生成次数已用完。支付后可继续生成完整版报告，并获得后续深度解析入口。"
-          }
-          reportId={savedReport?.id}
+          reportId={report.reportId}
           productType="full_report"
-          productName="完整深度报告"
-          priceLabel={siteConfig.fullReportPriceLabel}
-          onUnlock={handleCurrentReportUnlock}
+          onUnlock={handlePaid}
           onClose={() => setShowPayment(false)}
         />
       ) : null}

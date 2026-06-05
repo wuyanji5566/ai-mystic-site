@@ -1,126 +1,117 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { getStoredOrder, getStoredReport, isPaidOrderForReport } from "@/lib/mvp-store";
 import { buildFollowupPrompt } from "@/lib/prompts";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
-const profileSchema = z.object({
-  zodiac: z.string().min(1).max(20),
-  westernSign: z.string().min(1).max(20),
-  yearPillar: z.string().min(1).max(20),
-  birthSummary: z.string().min(1).max(500),
-});
-
-const followupRequestSchema = z.object({
-  reportTitle: z.string().trim().min(1).max(120),
-  report: z.string().trim().min(20).max(20000),
-  question: z.string().trim().min(2, "请先输入想深化的问题").max(300, "问题不要超过 300 个字"),
-  profile: profileSchema,
+const followupSchema = z.object({
+  reportId: z.string().trim().min(6),
+  orderId: z.string().trim().min(6),
+  question: z.string().trim().min(2, "请先输入想深入的问题").max(300),
 });
 
 function buildDemoFollowup(question: string) {
   return [
-    "【深化结论】",
-    `你这次想看的重点是“${question}”。从自我探索角度看，最重要的不是马上得到一个确定答案，而是把问题拆成可观察、可行动、可复盘的步骤。`,
+    "【直接结论】",
+    `你这次真正想解决的是“${question}”。先不要急着寻找唯一答案，更有效的做法是把问题变成一个能在 30 天内验证的现实选择。`,
     "",
-    "【命盘观察角度】",
-    "原报告里的生肖、星座和年柱只能提供入门观察维度，不能替代真实经历和专业判断。你可以把它们当作提醒：看见自己的惯性，再决定下一步怎么调整。",
+    "【四维交叉依据】",
+    "八字节律提醒你关注发力节奏，紫微结构关注你所在的位置与资源，星座视角揭示你的情绪需求，MBTI 则解释你如何判断和执行。四者放在一起时，最常见的卡点不是能力不够，而是想法、位置、情绪反馈和行动周期没有对齐。",
     "",
-    "【现实行动建议】",
-    "1. 先写下你现在最纠结的 1 个具体问题，不要一次处理太多方向。",
-    "2. 把问题拆成“我能控制”和“我不能控制”两栏。",
-    "3. 选一个 7 天内能完成的小动作，先用行动换反馈。",
-    "4. 找一个可信的人复盘，而不是只在脑子里反复想。",
-    "5. 如果涉及金钱、健康、法律或婚姻重大选择，请咨询对应专业人士。",
+    "【现实场景】",
+    "你可能会在信息还不完整时继续观察，也可能因为现实反馈太慢而临时换方向。短期看是在寻找更好答案，长期看却会打断积累。",
+    "",
+    "【行动建议】",
+    "1. 把问题缩小成一个 30 天内能验证的目标。\n2. 写清楚成功标准，不用情绪判断进度。\n3. 每周只保留一个主动作。\n4. 找三位真实对象获得反馈。\n5. 第 30 天根据结果决定继续、调整或停止。",
     "",
     "【未来 30 天小计划】",
-    "第 1 周：整理问题和现状，减少情绪化判断。",
-    "第 2 周：完成一个低风险尝试，记录真实反馈。",
-    "第 3 周：根据反馈调整方向，不急着下结论。",
-    "第 4 周：形成下一阶段计划，并决定是否需要专业帮助。",
+    "第 1 周定义问题；第 2 周完成最小成果；第 3 周获得真实反馈；第 4 周整理结论并确定下一步。",
     "",
-    "【提醒】",
-    "这份深化内容用于娱乐和自我探索，不构成现实决策建议。",
+    "【边界提醒】",
+    "本内容用于自我探索与成长复盘，不替代医疗、法律、投资或其他专业判断。",
   ].join("\n");
 }
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkRateLimit(`report-followup:${ip}`, 10, 60 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfterSeconds);
+
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`report-followup:${ip}`, 10, 60 * 60 * 1000);
+    const input = followupSchema.parse(await request.json());
+    const [report, order] = await Promise.all([
+      getStoredReport(input.reportId),
+      getStoredOrder(input.orderId),
+    ]);
 
-    if (!rateLimit.allowed) {
-      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    if (!report) {
+      return Response.json({ error: "报告不存在。" }, { status: 404 });
+    }
+    if (!isPaidOrderForReport(order, input.reportId, "followup_room")) {
+      return Response.json(
+        { error: "追问订单尚未完成付款核验。" },
+        { status: 403 },
+      );
     }
 
-    let body: unknown;
-
-    try {
-      body = await request.json();
-    } catch {
-      return Response.json({ error: "请求 JSON 格式不正确。" }, { status: 400 });
-    }
-
-    const input = followupRequestSchema.parse(body);
     const apiKey = process.env.OPENAI_API_KEY?.trim();
-
-    if (!apiKey || apiKey === "你的 OpenAI API Key" || apiKey === "你的 DeepSeek API Key") {
+    if (!apiKey || apiKey.includes("你的")) {
       return Response.json({
         answer: buildDemoFollowup(input.question),
         mode: "demo",
-        statusMessage: "未配置 AI API Key，已使用演示深化内容。",
+        statusMessage: "当前使用结构化备用解析。",
       });
     }
 
-    const client = new OpenAI({
-      apiKey,
-      baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
-      maxRetries: 0,
-      timeout: 10000,
-    });
-
     try {
+      const client = new OpenAI({
+        apiKey,
+        baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
+        timeout: 45000,
+        maxRetries: 1,
+      });
       const completion = await client.chat.completions.create({
-        model: process.env.OPENAI_MODEL?.trim() || "deepseek-v4-flash",
+        model: process.env.OPENAI_MODEL?.trim() || "deepseek-chat",
         messages: [
           {
             role: "system",
-            content: "你是一个谨慎、温和、结构化的中文追问助手。",
+            content: "你是严谨、有温度的中文个人成长咨询顾问。",
           },
           {
             role: "user",
-            content: buildFollowupPrompt(input),
+            content: buildFollowupPrompt({
+              question: input.question,
+              reportTitle: report.title,
+              report: report.fullReport,
+              profile: report.profile,
+            }),
           },
         ],
         temperature: 0.7,
+        max_tokens: 2200,
       });
-
       const answer = completion.choices[0]?.message?.content?.trim();
-
       if (answer) {
         return Response.json({
           answer,
           mode: "ai",
-          statusMessage: "玄机 AI 深度解析已生成",
+          statusMessage: "专属追问解析已生成。",
         });
       }
-    } catch (aiError) {
-      console.error("AI followup failed, falling back to demo answer:", aiError);
+    } catch (error) {
+      console.error("Follow-up generation failed:", error);
     }
 
     return Response.json({
       answer: buildDemoFollowup(input.question),
       mode: "demo",
-      statusMessage: "AI 深化调用失败，已使用演示内容。",
+      statusMessage: "AI 服务暂时繁忙，已使用结构化备用解析。",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return Response.json(
-        { error: error.issues[0]?.message || "提交信息不完整" },
-        { status: 400 },
-      );
+      return Response.json({ error: error.issues[0]?.message }, { status: 400 });
     }
-
-    console.error("Report followup error:", error);
-    return Response.json({ error: "服务器生成深化内容失败，请稍后再试。" }, { status: 500 });
+    console.error("Report follow-up failed:", error);
+    return Response.json({ error: "追问生成失败，请稍后重试。" }, { status: 500 });
   }
 }
