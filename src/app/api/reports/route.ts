@@ -1,5 +1,8 @@
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { createCloudReport, isSupabaseConfigured, listCloudReports } from "@/lib/supabase-reports";
+import { adminSessionCookieName, isValidAdminSession } from "@/lib/admin-auth";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const reportSchema = z.object({
   input: z.object({
@@ -26,6 +29,12 @@ const reportSchema = z.object({
 });
 
 export async function GET() {
+  const cookieStore = await cookies();
+
+  if (!isValidAdminSession(cookieStore.get(adminSessionCookieName)?.value)) {
+    return Response.json({ error: "需要管理员登录后查看云端报告列表。" }, { status: 401 });
+  }
+
   if (!isSupabaseConfigured()) {
     return Response.json(
       { error: "Supabase 未配置，当前只能使用浏览器本地保存。" },
@@ -45,6 +54,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkRateLimit(`save-report:${ip}`, 12, 60 * 60 * 1000);
+
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.retryAfterSeconds);
+  }
+
   if (!isSupabaseConfigured()) {
     return Response.json(
       { error: "Supabase 未配置，当前只能使用浏览器本地保存。" },

@@ -2,9 +2,14 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { buildMysticProfile, buildDemoReport } from "@/lib/mystic";
 import { buildMysticPrompt } from "@/lib/prompts";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const mysticRequestSchema = z.object({
-  name: z.string().trim().min(1, "请填写昵称").max(30, "昵称不要超过 30 个字"),
+  name: z
+    .string()
+    .trim()
+    .max(30, "昵称不要超过 30 个字")
+    .transform((value) => value || "匿名用户"),
   gender: z.string().trim().min(1).max(20),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "出生日期格式不正确"),
   birthTime: z.string().regex(/^\d{2}:\d{2}$/, "出生时间格式不正确"),
@@ -32,6 +37,13 @@ function demoResponse(
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`mystic-report:${ip}`, 6, 60 * 60 * 1000);
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     let body: unknown;
 
     try {

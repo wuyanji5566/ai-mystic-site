@@ -1,36 +1,49 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import {
-  createOrderId,
-  deleteManualOrder,
-  getManualOrders,
-  saveManualOrder,
-  type ManualOrder,
-  type ManualOrderStatus,
-} from "@/lib/order-storage";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import type {
+  ManualOrder,
+  ManualOrderProduct,
+  ManualOrderStatus,
+} from "@/lib/supabase-orders";
 import { siteConfig } from "@/lib/site-config";
 
-const statusOptions: ManualOrderStatus[] = ["待核对", "已付款", "已解锁", "异常"];
-
 type OrderFormState = {
-  id: string;
+  orderId: string;
+  reportId: string;
+  productType: ManualOrderProduct;
+  productName: string;
+  amount: string;
+  status: ManualOrderStatus;
   customerName: string;
   wechat: string;
-  amount: string;
   reportLink: string;
-  status: ManualOrderStatus;
   note: string;
 };
 
+const statusOptions: Array<{ value: ManualOrderStatus; label: string }> = [
+  { value: "pending", label: "待核对" },
+  { value: "paid", label: "已付款" },
+  { value: "unlocked", label: "已解锁" },
+  { value: "exception", label: "异常" },
+];
+
+const productOptions: Array<{ value: ManualOrderProduct; label: string; amount: string }> = [
+  { value: "full_report", label: "完整深度报告", amount: siteConfig.fullReportPrice },
+  { value: "followup_room", label: "四维追问室", amount: siteConfig.followupPrice },
+];
+
 function createEmptyForm(): OrderFormState {
   return {
-    id: createOrderId(),
+    orderId: "",
+    reportId: "",
+    productType: "full_report",
+    productName: "完整深度报告",
+    amount: siteConfig.fullReportPrice,
+    status: "pending",
     customerName: "",
     wechat: "",
-    amount: siteConfig.fullReportPrice,
     reportLink: "",
-    status: "待核对",
     note: "",
   };
 }
@@ -44,27 +57,55 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getStatusLabel(status: ManualOrderStatus) {
+  return statusOptions.find((item) => item.value === status)?.label || status;
+}
+
 export function AdminOrderPanel() {
   const [form, setForm] = useState<OrderFormState>(() => createEmptyForm());
-  const [orders, setOrders] = useState<ManualOrder[]>(() => getManualOrders());
+  const [orders, setOrders] = useState<ManualOrder[]>([]);
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const paidCount = useMemo(
-    () => orders.filter((order) => order.status === "已付款" || order.status === "已解锁").length,
+    () => orders.filter((order) => order.status === "paid" || order.status === "unlocked").length,
     [orders],
   );
 
   const totalAmount = useMemo(
     () =>
       orders
-        .filter((order) => order.status === "已付款" || order.status === "已解锁")
+        .filter((order) => order.status === "paid" || order.status === "unlocked")
         .reduce((sum, order) => sum + Number(order.amount || 0), 0),
     [orders],
   );
 
-  function refreshOrders() {
-    setOrders(getManualOrders());
+  async function loadOrders() {
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/orders");
+      const data = (await response.json()) as { orders?: ManualOrder[]; error?: string };
+
+      if (!response.ok) throw new Error(data.error || "读取订单失败。");
+
+      setOrders(data.orders || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "读取订单失败。");
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      loadOrders();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function updateForm<K extends keyof OrderFormState>(key: K, value: OrderFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -74,41 +115,72 @@ export function AdminOrderPanel() {
     setForm(createEmptyForm());
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setIsSaving(true);
+    setMessage("");
 
-    const saved = saveManualOrder(form);
-    setForm({
-      id: saved.id,
-      customerName: saved.customerName,
-      wechat: saved.wechat,
-      amount: saved.amount,
-      reportLink: saved.reportLink,
-      status: saved.status,
-      note: saved.note,
-    });
-    refreshOrders();
-    setMessage(`订单 ${saved.id} 已保存。`);
+    try {
+      const response = await fetch("/api/admin/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = (await response.json()) as { order?: ManualOrder; error?: string };
+
+      if (!response.ok || !data.order) throw new Error(data.error || "保存订单失败。");
+
+      setMessage(`订单 ${data.order.orderId} 已保存。`);
+      setForm({
+        orderId: data.order.orderId,
+        reportId: data.order.reportId,
+        productType: data.order.productType,
+        productName: data.order.productName,
+        amount: data.order.amount,
+        status: data.order.status,
+        customerName: data.order.customerName,
+        wechat: data.order.wechat,
+        reportLink: data.order.reportLink,
+        note: data.order.note,
+      });
+      await loadOrders();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存订单失败。");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function editOrder(order: ManualOrder) {
     setForm({
-      id: order.id,
+      orderId: order.orderId,
+      reportId: order.reportId,
+      productType: order.productType,
+      productName: order.productName,
+      amount: order.amount,
+      status: order.status,
       customerName: order.customerName,
       wechat: order.wechat,
-      amount: order.amount,
       reportLink: order.reportLink,
-      status: order.status,
       note: order.note,
     });
-    setMessage(`正在编辑订单 ${order.id}`);
+    setMessage(`正在编辑订单 ${order.orderId}`);
   }
 
-  function removeOrder(id: string) {
-    deleteManualOrder(id);
-    refreshOrders();
-    if (form.id === id) resetForm();
-    setMessage(`订单 ${id} 已删除。`);
+  async function markPaid(order: ManualOrder) {
+    setForm({
+      orderId: order.orderId,
+      reportId: order.reportId,
+      productType: order.productType,
+      productName: order.productName,
+      amount: order.amount,
+      status: "paid",
+      customerName: order.customerName,
+      wechat: order.wechat,
+      reportLink: order.reportLink,
+      note: order.note,
+    });
+    setMessage(`已选中订单 ${order.orderId}，点击“保存订单”即可确认已付款。`);
   }
 
   async function copyText(text: string, successMessage: string) {
@@ -116,8 +188,8 @@ export function AdminOrderPanel() {
     setMessage(successMessage);
   }
 
-  const paymentReminder = `请扫码支付 ${siteConfig.fullReportPriceLabel}，付款备注填写订单号：${form.id}。付款后回到报告页点击“我已完成支付，生成完整报告”即可继续查看；如遇问题，把截图和报告链接发给客服微信 ${siteConfig.contactWeChat}。`;
-  const unlockReply = `你好，订单 ${form.id} 已核对。请回到报告页点击“我已完成支付，生成完整报告”，系统会在当前浏览器打开完整版。如遇问题，直接把页面截图发给客服微信 ${siteConfig.contactWeChat}。`;
+  const paymentReminder = `请扫码支付 ${form.amount || siteConfig.fullReportPrice} 元，付款备注填写订单号：${form.orderId || "页面生成的订单号"}。付款后请把截图发给客服微信 ${siteConfig.contactWeChat} 核对。`;
+  const unlockReply = `你好，订单 ${form.orderId || "订单号"} 已核对付款。请回到报告页点击“我已付款，核对订单并解锁”。`;
 
   return (
     <section className="mx-auto grid max-w-7xl gap-5 px-5 py-8 lg:grid-cols-[0.92fr_1.08fr]">
@@ -131,7 +203,7 @@ export function AdminOrderPanel() {
               人工订单核销台
             </h1>
             <p className="mt-3 text-sm leading-7 text-[#cfc2ae]">
-              先用本地台账处理微信收款：记录订单号、付款状态、报告链接，并一键复制回复话术。
+              用户付款后，把对应订单状态改为“已付款”。用户回到报告页核对订单后，系统才会解锁内容。
             </p>
           </div>
           <button
@@ -161,45 +233,66 @@ export function AdminOrderPanel() {
         <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-sm font-semibold">
             订单号
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-              <input
-                required
-                value={form.id}
-                onChange={(event) => updateForm("id", event.target.value)}
-                className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-              />
-              <button
-                type="button"
-                onClick={() => updateForm("id", createOrderId())}
-                className="h-11 border border-[#f5efe2]/12 px-4 text-xs font-bold text-[#cfc2ae] transition hover:border-[#d7aa55] hover:text-[#d7aa55]"
-              >
-                换一个
-              </button>
-            </div>
+            <input
+              value={form.orderId}
+              onChange={(event) => updateForm("orderId", event.target.value)}
+              className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
+              placeholder="编辑已有订单时填写；新建可留空"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold">
+            报告 ID
+            <input
+              required
+              value={form.reportId}
+              onChange={(event) => updateForm("reportId", event.target.value)}
+              className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
+              placeholder="例如 /report/ 后面的 id"
+            />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-semibold">
-              用户昵称
-              <input
-                value={form.customerName}
-                onChange={(event) => updateForm("customerName", event.target.value)}
+              产品
+              <select
+                value={form.productType}
+                onChange={(event) => {
+                  const selected = productOptions.find((item) => item.value === event.target.value);
+                  if (!selected) return;
+                  setForm((current) => ({
+                    ...current,
+                    productType: selected.value,
+                    productName: selected.label,
+                    amount: selected.amount,
+                  }));
+                }}
                 className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-                placeholder="例如：小林"
-              />
+              >
+                {productOptions.map((product) => (
+                  <option key={product.value} value={product.value}>
+                    {product.label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="grid gap-2 text-sm font-semibold">
-              用户微信
-              <input
-                value={form.wechat}
-                onChange={(event) => updateForm("wechat", event.target.value)}
+              状态
+              <select
+                value={form.status}
+                onChange={(event) => updateForm("status", event.target.value as ManualOrderStatus)}
                 className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-                placeholder="用户发来的微信号"
-              />
+              >
+                {statusOptions.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-[0.7fr_1fr]">
+          <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-semibold">
               金额
               <input
@@ -210,16 +303,12 @@ export function AdminOrderPanel() {
               />
             </label>
             <label className="grid gap-2 text-sm font-semibold">
-              状态
-              <select
-                value={form.status}
-                onChange={(event) => updateForm("status", event.target.value as ManualOrderStatus)}
+              用户微信
+              <input
+                value={form.wechat}
+                onChange={(event) => updateForm("wechat", event.target.value)}
                 className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-              >
-                {statusOptions.map((status) => (
-                  <option key={status}>{status}</option>
-                ))}
-              </select>
+              />
             </label>
           </div>
 
@@ -229,7 +318,6 @@ export function AdminOrderPanel() {
               value={form.reportLink}
               onChange={(event) => updateForm("reportLink", event.target.value)}
               className="h-11 border border-[#d7aa55]/26 bg-[#0f1412] px-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-              placeholder="用户发来的 /report/xxx 链接"
             />
           </label>
 
@@ -240,16 +328,16 @@ export function AdminOrderPanel() {
               value={form.note}
               onChange={(event) => updateForm("note", event.target.value)}
               className="resize-none border border-[#d7aa55]/26 bg-[#0f1412] px-3 py-3 text-[#fff8ec] outline-none focus:border-[#d7aa55]"
-              placeholder="例如：已收到截图，用户已自助打开完整版"
             />
           </label>
 
           <div className="grid gap-2 sm:grid-cols-3">
             <button
               type="submit"
-              className="h-11 bg-[#d7aa55] px-4 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c]"
+              disabled={isSaving}
+              className="h-11 bg-[#d7aa55] px-4 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              保存订单
+              {isSaving ? "保存中..." : "保存订单"}
             </button>
             <button
               type="button"
@@ -279,26 +367,35 @@ export function AdminOrderPanel() {
         <div className="flex flex-col gap-2 border-b border-[#121714]/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8b2732]">
-              Local Ledger
+              Order Ledger
             </p>
             <h2 className="mt-3 text-2xl font-bold">最近订单</h2>
           </div>
-          <p className="text-xs leading-5 text-[#69756f]">
-            这个后台先保存在你的浏览器本地。换电脑前请截图或导出台账。
-          </p>
+          <button
+            type="button"
+            onClick={loadOrders}
+            className="h-10 border border-[#d9c7b2] bg-white px-4 text-xs font-bold transition hover:border-[#8b2732]"
+          >
+            刷新
+          </button>
         </div>
 
         <div className="mt-5 grid gap-3">
-          {orders.length ? (
+          {isLoading ? (
+            <p className="border border-[#121714]/10 bg-[#fffaf2] p-5 text-sm text-[#52615b]">
+              正在读取订单...
+            </p>
+          ) : orders.length ? (
             orders.map((order) => (
-              <div key={order.id} className="border border-[#121714]/10 bg-[#fffaf2] p-4">
+              <div key={order.orderId} className="border border-[#121714]/10 bg-[#fffaf2] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-bold text-[#8b2732]">{order.status}</p>
-                    <h3 className="mt-2 text-lg font-bold">{order.id}</h3>
+                    <p className="text-xs font-bold text-[#8b2732]">
+                      {getStatusLabel(order.status)} · {order.productName}
+                    </p>
+                    <h3 className="mt-2 text-lg font-bold">{order.orderId}</h3>
                     <p className="mt-2 text-sm leading-6 text-[#52615b]">
-                      {order.customerName || "未填昵称"} ｜ 微信：{order.wechat || "未填"} ｜{" "}
-                      {order.amount} 元
+                      报告：{order.reportId} ｜ 微信：{order.wechat || "未填"} ｜ {order.amount} 元
                     </p>
                     <p className="mt-1 text-xs text-[#69756f]">
                       更新于 {formatDate(order.updatedAt)}
@@ -314,10 +411,10 @@ export function AdminOrderPanel() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => removeOrder(order.id)}
+                      onClick={() => markPaid(order)}
                       className="h-9 border border-[#8b2732]/24 bg-white px-3 text-xs font-bold text-[#8b2732] transition hover:bg-[#8b2732] hover:text-white"
                     >
-                      删除
+                      设为已付款
                     </button>
                   </div>
                 </div>
@@ -333,7 +430,7 @@ export function AdminOrderPanel() {
             ))
           ) : (
             <p className="border border-[#121714]/10 bg-[#fffaf2] p-5 text-sm leading-7 text-[#52615b]">
-              暂无订单。用户付款后，把订单号、微信、报告链接录入这里即可。
+              暂无订单。用户打开付款弹窗后，系统会自动创建待核对订单。
             </p>
           )}
         </div>

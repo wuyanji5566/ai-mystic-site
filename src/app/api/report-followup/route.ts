@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { buildFollowupPrompt } from "@/lib/prompts";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const profileSchema = z.object({
   zodiac: z.string().min(1).max(20),
@@ -44,6 +45,13 @@ function buildDemoFollowup(question: string) {
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`report-followup:${ip}`, 10, 60 * 60 * 1000);
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     let body: unknown;
 
     try {

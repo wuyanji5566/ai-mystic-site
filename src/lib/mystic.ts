@@ -72,7 +72,7 @@ export function buildMysticProfile(input: MysticInput): MysticProfile {
 export function buildDemoReport(input: MysticInput, profile: MysticProfile) {
   return [
     "【报告说明】",
-    "这是一份 MVP 演示版报告，用于展示网站的完整产品体验。内容仅供娱乐和自我探索，不构成现实决策建议。",
+    "这是一份 MVP 演示版报告，用于展示网站的完整产品体验。内容仅供自我探索、认知复盘与成长参考，不构成现实决策建议。",
     "",
     "1. 基础命盘概览",
     `${input.name} 的基础资料显示：星座为 ${profile.westernSign}，生肖为 ${profile.zodiac}，八字年柱为 ${profile.yearPillar}。这些信息可以作为入门观察维度，用来组织一份更有结构的自我探索报告。`,

@@ -8,7 +8,9 @@ import { siteConfig } from "@/lib/site-config";
 import {
   clearReportFollowups,
   getReportFollowups,
+  isFollowupUnlocked,
   saveReportFollowup,
+  unlockFollowupRoom,
   type FollowupMessage,
 } from "@/lib/followup-storage";
 import {
@@ -46,6 +48,8 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   const [followupError, setFollowupError] = useState("");
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [isFollowupRoomUnlocked, setIsFollowupRoomUnlocked] = useState(false);
+  const [showFollowupPayment, setShowFollowupPayment] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -53,6 +57,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         setReport(result?.report || null);
         setStorageMode(result?.storage || "local");
         setIsUnlocked(result?.report ? isReportUnlocked(result.report.id) : false);
+        setIsFollowupRoomUnlocked(result?.report ? isFollowupUnlocked(result.report.id) : false);
         setFollowupHistory(result?.report ? getReportFollowups(result.report.id) : []);
         setIsLoading(false);
       });
@@ -88,6 +93,15 @@ export function ReportDetail({ reportId }: { reportId: string }) {
     setShowPayment(false);
   }
 
+  function handleFollowupUnlock() {
+    if (!report) return;
+
+    unlockFollowupRoom(report.id);
+    setIsFollowupRoomUnlocked(true);
+    setShowFollowupPayment(false);
+    setCopyMessage("四维追问室已解锁。现在可以继续深化解析。");
+  }
+
   async function handleFollowup(question = followupQuestion) {
     if (!report) return;
 
@@ -96,6 +110,14 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         `继续深度解析需要解锁完整版报告，价格 ${siteConfig.fullReportPriceLabel}。`,
       );
       setShowPayment(true);
+      return;
+    }
+
+    if (!isFollowupRoomUnlocked) {
+      setFollowupError(
+        `四维追问室为单独深度解析服务，价格 ${siteConfig.followupPriceLabel}。支付后可围绕本报告继续提问。`,
+      );
+      setShowFollowupPayment(true);
       return;
     }
 
@@ -243,6 +265,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             <div className="mt-4">
               <PaymentUnlockPanel
                 compact
+                reportId={report.id}
+                productType="full_report"
+                productName="完整深度报告"
+                priceLabel={siteConfig.fullReportPriceLabel}
                 onUnlock={handleUnlock}
               />
             </div>
@@ -289,13 +315,31 @@ export function ReportDetail({ reportId }: { reportId: string }) {
               <p className="text-sm font-semibold text-[#9a563f]">四维追问室</p>
               <h2 className="mt-2 text-2xl font-semibold">像聊天一样继续深挖</h2>
               <p className="mt-3 text-sm leading-7 text-[#6f6254]">
-                系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。继续深度解析需要解锁完整版。
+                系统会结合紫微、八字、星座和 MBTI，再次生成具体行动建议。四维追问室为单独深度解析服务，解锁价 {siteConfig.followupPriceLabel}。
               </p>
             </div>
             <div className="w-fit border border-[#dfd2c1] bg-[#fffaf2] px-3 py-2 text-xs font-semibold text-[#6f6254]">
-              已追问 {followupHistory.length} 次
+              {isFollowupRoomUnlocked ? `已追问 ${followupHistory.length} 次` : `未解锁 · ${siteConfig.followupPriceLabel}`}
             </div>
           </div>
+
+          {!isFollowupRoomUnlocked ? (
+            <div className="mt-5 border border-[#d7aa55]/35 bg-[#fff6df] p-4">
+              <p className="text-sm font-bold text-[#1d1a16]">
+                解锁四维追问室 · {siteConfig.followupPriceLabel}
+              </p>
+              <p className="mt-2 text-sm leading-7 text-[#6f6254]">
+                适合继续深挖事业卡点、副业方向、亲密关系、财富节奏和未来30天行动。未解锁前可以查看问题示例，但不能生成解析。
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowFollowupPayment(true)}
+                className="mt-3 h-11 bg-[#1d1a16] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f]"
+              >
+                解锁四维追问室 ¥{siteConfig.followupPrice}
+              </button>
+            </div>
+          ) : null}
 
           {followupHistory.length ? (
             <div className="mt-5 space-y-4">
@@ -352,7 +396,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             disabled={isFollowupLoading}
             className="mt-3 h-11 bg-[#1d1a16] px-5 text-sm font-semibold text-[#fff8ec] transition hover:bg-[#9a563f] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isFollowupLoading ? "正在深化生成..." : "继续深化这个问题"}
+            {isFollowupLoading ? "正在深化生成..." : isFollowupRoomUnlocked ? "继续深化这个问题" : `解锁后继续追问 ¥${siteConfig.followupPrice}`}
           </button>
           {!isUnlocked ? (
             <button
@@ -389,8 +433,25 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
       {showPayment ? (
         <PaymentUnlockPanel
+          reportId={report.id}
+          productType="full_report"
+          productName="完整深度报告"
+          priceLabel={siteConfig.fullReportPriceLabel}
           onUnlock={handleUnlock}
           onClose={() => setShowPayment(false)}
+        />
+      ) : null}
+
+      {showFollowupPayment ? (
+        <PaymentUnlockPanel
+          title="解锁四维追问室"
+          description="一次解锁后，可围绕当前报告继续深挖事业、财富、关系和行动计划。适合已经看完报告、还想继续问具体问题的用户。"
+          productName="四维追问室"
+          priceLabel={siteConfig.followupPriceLabel}
+          reportId={report.id}
+          productType="followup_room"
+          onUnlock={handleFollowupUnlock}
+          onClose={() => setShowFollowupPayment(false)}
         />
       ) : null}
     </main>

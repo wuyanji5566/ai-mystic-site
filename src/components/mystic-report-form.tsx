@@ -16,6 +16,7 @@ import {
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { FreeSummaryReport } from "@/components/free-summary-report";
 import { ReportSectionCards } from "@/components/report-section-cards";
+import { legalLinks, standardDisclaimer } from "@/lib/legal-copy";
 import { siteConfig } from "@/lib/site-config";
 
 type ReportResponse = {
@@ -47,12 +48,10 @@ const focusPresets = [
   "财富",
   "感情",
   "婚姻",
-  "健康",
+  "人际关系",
   "人生方向",
-  "副业",
-  "转型",
-  "亲子",
-  "家庭",
+  "未来一年",
+  "30天行动建议",
 ];
 
 const reportIntentPresets = [
@@ -183,41 +182,6 @@ const inputClass =
 
 const labelClass = "grid gap-2 text-sm font-semibold text-[#f1e6d2]";
 
-function getPersonaBadge(input: MysticInput, profile?: ReportResponse["profile"]) {
-  const focus = input.focus;
-  const mbti = input.mbtiType || "未知";
-  const archetype = /事业|财富|副业|转型/.test(focus)
-    ? "长期构建型"
-    : /感情|婚姻|关系/.test(focus)
-      ? "边界敏感型"
-      : /INTJ|INTP|INFJ|INFP/.test(mbti)
-        ? "深度策略型"
-        : "四维探索型";
-
-  return {
-    title: `${archetype} · ${profile?.westernSign || "星座能量"} · ${mbti}`,
-    tags: [
-      /事业|财富|副业|转型/.test(focus) ? "事业路径" : "自我复盘",
-      profile?.zodiac ? `${profile.zodiac}年节律` : "出生节律",
-      input.birthTimeNote?.includes("不确定") ? "时间不确定版" : "精确时间版",
-    ],
-  };
-}
-
-function getDimensionScores(input: MysticInput, profile?: ReportResponse["profile"]) {
-  const seed = `${input.name}${input.birthDate}${input.birthPlace}${input.mbtiType}${profile?.westernSign || ""}`;
-  const base = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const focusBonus = /事业|财富|副业|转型/.test(input.focus) ? 6 : 0;
-  const relationBonus = /感情|婚姻|关系/.test(input.focus) ? 6 : 0;
-
-  return [
-    ["出生节律", 70 + ((base + focusBonus) % 19)],
-    ["人生结构", 68 + ((base * 3 + relationBonus) % 21)],
-    ["情绪能量", 66 + ((base * 5 + relationBonus) % 23)],
-    ["行动模式", 72 + ((base * 7 + focusBonus) % 18)],
-  ] as const;
-}
-
 export function MysticReportForm() {
   const [form, setForm] = useState(initialForm);
   const [activeStep, setActiveStep] = useState<FormStep>(1);
@@ -234,31 +198,14 @@ export function MysticReportForm() {
   const [copyMessage, setCopyMessage] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [freeUsedCount, setFreeUsedCount] = useState(0);
   const [showPayment, setShowPayment] = useState(false);
   const [isCurrentReportUnlocked, setIsCurrentReportUnlocked] = useState(false);
-  const [unlockSeconds, setUnlockSeconds] = useState(15 * 60);
   const [generationStepIndex, setGenerationStepIndex] = useState(0);
   const [showMobileCta, setShowMobileCta] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const reportRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setFreeUsedCount(getFreeReportUsage().count);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setUnlockSeconds((seconds) => (seconds > 0 ? seconds - 1 : 0));
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -307,6 +254,16 @@ export function MysticReportForm() {
       return;
     }
 
+    if (!hasAcceptedTerms) {
+      setError("请先阅读并勾选用户服务协议、隐私政策和免责声明。");
+      setActiveStep(3);
+      return;
+    }
+
+    const requestInput = {
+      ...form,
+      name: form.name.trim() || "匿名用户",
+    };
     const hasUsedFreeReport = getFreeReportUsage().count >= siteConfig.freeReportsPerUser;
     const minimumGenerationRitual = new Promise<void>((resolve) => {
       window.setTimeout(resolve, 4300);
@@ -319,7 +276,7 @@ export function MysticReportForm() {
       const response = await fetch("/api/mystic-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(requestInput),
       });
       const data = (await response.json()) as unknown;
 
@@ -332,7 +289,7 @@ export function MysticReportForm() {
 
       try {
         const saved = await saveReportWithCloudFallback({
-          input: form,
+          input: requestInput,
           profile: reportData.profile,
           report: reportData.report,
           mode: reportData.mode,
@@ -348,7 +305,7 @@ export function MysticReportForm() {
       }
 
       try {
-        setFreeUsedCount(markFreeReportGenerated().count);
+        markFreeReportGenerated();
       } catch (usageError) {
         console.error("Report generated but usage counter failed:", usageError);
       }
@@ -407,15 +364,8 @@ export function MysticReportForm() {
     (_, index) => index + 1,
   );
 
-  const unlockCountdown = `${String(Math.floor(unlockSeconds / 60)).padStart(2, "0")}:${String(
-    unlockSeconds % 60,
-  ).padStart(2, "0")}`;
-  const personaBadge = getPersonaBadge(form, report?.profile);
-  const dimensionScores = getDimensionScores(form, report?.profile);
-
   function getStepError(step: FormStep) {
     if (step >= 1) {
-      if (!form.name.trim()) return "请先填写昵称。";
       if (!form.birthDate) return "请选择完整的出生日期。";
       if (!form.birthTime) return "请选择出生时间。如果不确定，可以选择“不知道时间”。";
       if (!form.birthPlace.trim()) return "请填写出生地点。";
@@ -555,11 +505,9 @@ export function MysticReportForm() {
       <div className="mt-5 grid gap-3 border border-[#d7aa55]/18 bg-[#0f1412] p-4 text-sm text-[#d8cdb9] sm:grid-cols-3">
         <p>
           <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-            Free Quota
+            Time
           </span>
-          <strong className="mt-2 block text-[#fff8ec]">
-            已用 {freeUsedCount} / {siteConfig.freeReportsPerUser}
-          </strong>
+          <strong className="mt-2 block text-[#fff8ec]">约 2 分钟完成</strong>
         </p>
         <p>
           <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
@@ -569,9 +517,9 @@ export function MysticReportForm() {
         </p>
         <p>
           <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#d7aa55]">
-            WeChat
+            Result
           </span>
-          <strong className="mt-2 block text-[#fff8ec]">{siteConfig.contactWeChat}</strong>
+          <strong className="mt-2 block text-[#fff8ec]">先看完整免费诊断</strong>
         </p>
       </div>
 
@@ -616,13 +564,12 @@ export function MysticReportForm() {
           <div className="grid gap-4">
             <div className="grid gap-4 sm:grid-cols-[1fr_0.7fr]">
               <label className={labelClass}>
-                昵称
+                姓名/昵称（可选）
                 <input
-                  required
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                   className={inputClass}
-                  placeholder="例如：小林"
+                  placeholder="可不填，不填则以匿名用户生成"
                 />
               </label>
               <label className={labelClass}>
@@ -960,6 +907,27 @@ export function MysticReportForm() {
               <p className="mt-4 border border-[#2f9c89]/22 bg-[#0e1917] px-4 py-3 text-sm leading-7 text-[#c8efe4]">
                 免费摘要会展示核心性格、事业方向和关系提醒。完整版可继续解锁详细分析、30 天行动方案和后续追问。
               </p>
+              <label className="mt-4 flex cursor-pointer gap-3 border border-[#d7aa55]/20 bg-[#17120d] p-4 text-xs leading-6 text-[#f2ddae]">
+                <input
+                  type="checkbox"
+                  checked={hasAcceptedTerms}
+                  onChange={(event) => setHasAcceptedTerms(event.target.checked)}
+                  className="mt-1 h-4 w-4 accent-[#d7aa55]"
+                />
+                <span>
+                  我已阅读并同意
+                  {legalLinks.map((link, index) => (
+                    <span key={link.href}>
+                      <Link href={link.href} className="font-bold text-[#fff8ec] underline underline-offset-4">
+                        《{link.label}》
+                      </Link>
+                      {index < legalLinks.length - 1 ? "、" : ""}
+                    </span>
+                  ))}
+                  ，理解本报告仅用于自我探索与成长参考，不构成现实决策建议。
+                </span>
+              </label>
+              <p className="mt-3 text-xs leading-6 text-[#9fa89f]">{standardDisclaimer}</p>
             </div>
           </div>
         ) : null}
@@ -994,7 +962,7 @@ export function MysticReportForm() {
           ) : (
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !hasAcceptedTerms}
               className="xj-cta h-12 bg-[#d7aa55] px-6 text-sm font-bold text-[#121714] transition hover:bg-[#f0c86c] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? "正在生成..." : "生成我的报告 →"}
@@ -1069,12 +1037,6 @@ export function MysticReportForm() {
             >
               复制摘要
             </button>
-            <Link
-              href="/service"
-              className="flex h-11 items-center justify-center border border-[#121714]/18 bg-white px-4 text-sm font-bold transition hover:border-[#8b2732]"
-            >
-              解锁流程
-            </Link>
           </div>
 
           {copyMessage ? (
@@ -1102,41 +1064,6 @@ export function MysticReportForm() {
             </p>
           </div>
           <p className="mt-4 text-sm leading-7 text-[#52615b]">{report.profile.birthSummary}</p>
-          <div className="mt-4 border border-[#d7aa55]/28 bg-[#121714] p-4 text-[#f5efe2]">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d7aa55]">
-              专属画像徽章
-            </p>
-            <h4 className="mt-2 text-xl font-bold">{personaBadge.title}</h4>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {personaBadge.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="border border-[#d7aa55]/22 bg-[#d7aa55]/10 px-3 py-1 text-xs font-bold text-[#f2ddae]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {dimensionScores.map(([label, score]) => (
-                <div key={label} className="border border-[#d7aa55]/16 bg-[#0b100e] p-3">
-                  <div className="flex items-center justify-between gap-3 text-xs font-bold">
-                    <span className="text-[#f2ddae]">{label}</span>
-                    <span className="text-[#d7aa55]">{score}</span>
-                  </div>
-                  <div className="mt-2 h-1.5 overflow-hidden bg-[#2b241a]">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#d7aa55] via-[#f5df9b] to-[#8c6b2f]"
-                      style={{ width: `${score}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-xs leading-5 text-[#cfc2ae]">
-              这是根据本次输入生成的体验型四维指数，用于增强自我观察，不代表绝对结论。
-            </p>
-          </div>
           <div className="mt-5">
             <FreeSummaryReport
               input={form}
@@ -1162,7 +1089,7 @@ export function MysticReportForm() {
             </section>
           ) : null}
           <p className="mt-5 text-xs text-[#69756f]">
-            当前模式：{report.mode === "ai" ? "玄机 AI 生成" : "演示报告"} · {isCurrentReportUnlocked ? "完整版已解锁" : `完整版倒计时 ${unlockCountdown}`}
+            {isCurrentReportUnlocked ? "完整报告已解锁" : "免费核心诊断已生成，请先结合自己的真实经历阅读和验证。"}
           </p>
         </article>
       ) : null}
@@ -1188,29 +1115,18 @@ export function MysticReportForm() {
         </div>
       ) : null}
 
-      {report && !isCurrentReportUnlocked ? (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#d7aa55]/35 bg-[#090b10]/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:hidden">
-          <button
-            type="button"
-            onClick={() => setShowPayment(true)}
-            className="xj-cta flex h-12 w-full items-center justify-center bg-[#d7aa55] text-sm font-bold text-[#121714]"
-          >
-            解锁完整版 ¥19.9 · 继续查看
-          </button>
-          <p className="mt-1 text-center text-[11px] text-[#d8cdb9]">
-            完整版含事业、财富、关系、未来一年与 30 天行动计划
-          </p>
-        </div>
-      ) : null}
-
       {showPayment ? (
         <PaymentUnlockPanel
-          title={report ? "完整深度报告 · 限时体验价 19.9 元" : "解锁下一次完整报告"}
+          title={report ? "完整深度报告 · 内容与解锁说明" : "解锁下一次完整报告"}
           description={
             report
               ? "如果你正处在人生选择、事业转型、关系困惑或自我重建阶段，完整版更像是一份给自己的复盘报告。"
               : "免费生成次数已用完。支付后可继续生成完整版报告，并获得后续深度解析入口。"
           }
+          reportId={savedReport?.id}
+          productType="full_report"
+          productName="完整深度报告"
+          priceLabel={siteConfig.fullReportPriceLabel}
           onUnlock={handleCurrentReportUnlock}
           onClose={() => setShowPayment(false)}
         />

@@ -6,6 +6,8 @@ export const siteConfig = {
   githubOwner: "wuyanji5566",
   fullReportPrice: "19.9",
   fullReportPriceLabel: "19.9 元",
+  followupPrice: "9.9",
+  followupPriceLabel: "9.9 元",
   freeReportsPerUser: 1,
   targetMarket: "国内与海外用户",
   wechatPayQrPath: "/payments/wechat-pay.jpg",

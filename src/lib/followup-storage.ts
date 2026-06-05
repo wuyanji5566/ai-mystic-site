@@ -9,6 +9,7 @@ export type FollowupMessage = {
 };
 
 const FOLLOWUP_KEY = "ai-mystic-site:report-followups";
+const FOLLOWUP_UNLOCK_KEY = "ai-mystic-site:followup-unlocks";
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -50,4 +51,26 @@ export function saveReportFollowup(
 export function clearReportFollowups(reportId: string) {
   const next = getAllFollowups().filter((item) => item.reportId !== reportId);
   window.localStorage.setItem(FOLLOWUP_KEY, JSON.stringify(next));
+}
+
+function getFollowupUnlocks() {
+  if (!canUseStorage()) return [];
+
+  try {
+    const raw = window.localStorage.getItem(FOLLOWUP_UNLOCK_KEY);
+    const items = raw ? (JSON.parse(raw) as string[]) : [];
+    return Array.isArray(items) ? items : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isFollowupUnlocked(reportId: string) {
+  return getFollowupUnlocks().includes(reportId);
+}
+
+export function unlockFollowupRoom(reportId: string) {
+  if (!canUseStorage()) return;
+  const next = Array.from(new Set([...getFollowupUnlocks(), reportId]));
+  window.localStorage.setItem(FOLLOWUP_UNLOCK_KEY, JSON.stringify(next));
 }

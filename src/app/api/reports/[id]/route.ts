@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { deleteCloudReport, getCloudReport, isSupabaseConfigured } from "@/lib/supabase-reports";
+import { adminSessionCookieName, isValidAdminSession } from "@/lib/admin-auth";
 
 export async function GET(
   _request: Request,
@@ -34,6 +36,12 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const cookieStore = await cookies();
+
+  if (!isValidAdminSession(cookieStore.get(adminSessionCookieName)?.value)) {
+    return Response.json({ error: "需要管理员登录后删除云端报告。" }, { status: 401 });
+  }
+
   if (!isSupabaseConfigured()) {
     return Response.json(
       { error: "Supabase 未配置，当前只能使用浏览器本地保存。" },

@@ -412,6 +412,89 @@ textarea {
   min-height: 100%;
 }
 
+.premium-summary-grid {
+  counter-reset: summary-card;
+}
+
+.premium-summary-card {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(215, 170, 85, 0.34);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(155, 124, 255, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(255, 248, 236, 0.09), rgba(215, 170, 85, 0.035)),
+    rgba(12, 16, 18, 0.96);
+}
+
+.premium-summary-card::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(90deg, transparent, rgba(215, 170, 85, 0.28), transparent) 0 0 / 170px 1px no-repeat,
+    radial-gradient(circle at 18% 18%, rgba(215, 170, 85, 0.12), transparent 28%);
+  opacity: 0.86;
+}
+
+.premium-summary-card > * {
+  position: relative;
+}
+
+.summary-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(215, 170, 85, 0.18);
+  padding-bottom: 0.85rem;
+}
+
+.summary-card-topline span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(215, 170, 85, 0.42);
+  color: #d7aa55;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.summary-card-topline strong {
+  width: fit-content;
+  border: 1px solid rgba(155, 124, 255, 0.28);
+  background: rgba(155, 124, 255, 0.08);
+  padding: 0.35rem 0.6rem;
+  color: #d9ccff;
+  font-size: 0.72rem;
+}
+
+.paid-tease {
+  margin-top: 1rem;
+  border-top: 1px solid rgba(215, 170, 85, 0.2);
+  background:
+    linear-gradient(90deg, rgba(215, 170, 85, 0.1), transparent),
+    rgba(0, 0, 0, 0.16);
+  padding: 0.9rem;
+}
+
+.paid-tease span {
+  display: inline-flex;
+  color: #d7aa55;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.paid-tease p {
+  margin: 0.35rem 0 0;
+  color: #f2ddae !important;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.65;
+}
+
 .locked-line {
   margin-top: 0.9rem;
   border-top: 1px solid rgba(215, 170, 85, 0.18);
@@ -516,6 +599,14 @@ textarea {
   border-color: rgba(215, 170, 85, 0.24);
   color: #fff8ec;
   font-weight: 700;
+}
+
+.premium-lock-lead {
+  border-left: 2px solid #d7aa55;
+  background: rgba(215, 170, 85, 0.08);
+  padding: 0.85rem 1rem;
+  color: #f2ddae !important;
+  font-weight: 800;
 }
 
 .unlock-report-btn {
