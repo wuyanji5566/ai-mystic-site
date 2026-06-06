@@ -2,7 +2,7 @@ type FollowupAnalysisProps = {
   answer: string;
 };
 
-function parseFollowupSections(answer: string) {
+export function parseFollowupSections(answer: string) {
   const parts = answer
     .replace(/\r/g, "")
     .split(/【([^】]+)】/g)

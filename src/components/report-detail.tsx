@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { FollowupAnalysis } from "@/components/followup-analysis";
+import { FollowupArchive } from "@/components/followup-archive";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { ReportSectionCards } from "@/components/report-section-cards";
 import {
@@ -307,47 +307,14 @@ export function ReportDetail({
             >
               {followupLoading ? "正在生成专属解析..." : `继续深度追问 ${siteConfig.followupPriceLabel}`}
             </button>
-            {followupHistory.length ? (
-              <div className="mt-6 grid gap-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-black text-[#d7aa55]">
-                    专属追问档案 · {followupHistory.length} 条
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearReportFollowups(reportId);
-                      setFollowupHistory([]);
-                    }}
-                    className="text-xs text-[#9d9589] underline underline-offset-4"
-                  >
-                    清空本机记录
-                  </button>
-                </div>
-                {followupHistory.map((item, index) => (
-                  <article
-                    key={item.id}
-                    className="border border-[#d7aa55]/35 bg-[#f7efe0] p-4 text-[#2c271f] sm:p-6"
-                  >
-                    <div className="flex items-start justify-between gap-3 border-b border-[#d9c7aa] pb-4">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9a671e]">
-                          深度追问 {String(index + 1).padStart(2, "0")}
-                        </p>
-                        <h3 className="mt-2 text-lg font-black leading-8">{item.question}</h3>
-                      </div>
-                      <span className="shrink-0 border border-[#b58a43] px-2 py-1 text-[11px] font-bold text-[#79551d]">
-                        四维融合
-                      </span>
-                    </div>
-                    <FollowupAnalysis answer={item.answer} />
-                    <p className="mt-4 text-xs text-[#887966]">
-                      {new Date(item.createdAt).toLocaleString("zh-CN")}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            ) : null}
+            <FollowupArchive
+              items={followupHistory}
+              reportTitle={report.title}
+              onClear={() => {
+                clearReportFollowups(reportId);
+                setFollowupHistory([]);
+              }}
+            />
           </section>
         )}
 
