@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { FollowupAnalysis } from "@/components/followup-analysis";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
 import { ReportSectionCards } from "@/components/report-section-cards";
+import {
+  clearReportFollowups,
+  getReportFollowups,
+  saveReportFollowup,
+  type FollowupMessage,
+} from "@/lib/followup-storage";
 import type { MysticInput, MysticProfile } from "@/lib/mystic";
 import { siteConfig } from "@/lib/site-config";
 
@@ -51,7 +58,9 @@ export function ReportDetail({
   const [showFollowupPayment, setShowFollowupPayment] = useState(false);
   const [followupOrderId, setFollowupOrderId] = useState("");
   const [question, setQuestion] = useState(followupPresets[0]);
-  const [followup, setFollowup] = useState<FollowupResponse | null>(null);
+  const [followupHistory, setFollowupHistory] = useState<FollowupMessage[]>(() =>
+    getReportFollowups(reportId),
+  );
   const [followupLoading, setFollowupLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -103,7 +112,8 @@ export function ReportDetail({
   function handleFollowupPaid(paidOrderId: string) {
     setFollowupOrderId(paidOrderId);
     setShowFollowupPayment(false);
-    setMessage("四维追问室已开通，可以提交一个具体问题。");
+    setMessage("付款已确认，正在生成你的专属追问解析。");
+    void askFollowup(question, paidOrderId);
   }
 
   async function copyReport() {
@@ -112,20 +122,22 @@ export function ReportDetail({
     setMessage(report.unlocked ? "完整报告已复制。" : "免费摘要已复制。");
   }
 
-  async function askFollowup(selectedQuestion = question) {
+  async function askFollowup(
+    selectedQuestion = question,
+    verifiedOrderId = followupOrderId,
+  ) {
     if (!report?.unlocked) {
       setShowPayment(true);
       setMessage("请先解锁完整报告，再进入四维追问室。");
       return;
     }
-    if (!followupOrderId) {
+    if (!verifiedOrderId) {
       setShowFollowupPayment(true);
       setMessage(`四维追问室需单独解锁 ${siteConfig.followupPriceLabel}。`);
       return;
     }
 
     setQuestion(selectedQuestion);
-    setFollowup(null);
     setFollowupLoading(true);
     setMessage("");
 
@@ -135,13 +147,21 @@ export function ReportDetail({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reportId,
-          orderId: followupOrderId,
+          orderId: verifiedOrderId,
           question: selectedQuestion,
         }),
       });
       const data = (await response.json()) as FollowupResponse & { error?: string };
       if (!response.ok) throw new Error(data.error || "追问生成失败");
-      setFollowup(data);
+      const saved = saveReportFollowup({
+        reportId,
+        question: selectedQuestion,
+        answer: data.answer,
+        mode: data.mode,
+        statusMessage: data.statusMessage,
+      });
+      setFollowupHistory((items) => [...items, saved].slice(-12));
+      setMessage("专属追问解析已生成，并保存在当前设备。");
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : "追问生成失败");
     } finally {
@@ -253,8 +273,15 @@ export function ReportDetail({
             </p>
             <h2 className="mt-3 text-2xl font-black">四维追问室</h2>
             <p className="mt-3 text-sm leading-7 text-[#c9c0b1]">
-              围绕当前报告继续追问事业、财富、关系或行动计划。追问室单独解锁 {siteConfig.followupPriceLabel}，服务器核验后才能生成答案。
+              围绕当前报告继续追问事业、财富、关系或行动计划。追问室单独解锁 {siteConfig.followupPriceLabel}，付款确认后会自动生成当前问题的详细解析。
             </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#d9cda8]">
+              {["四维交叉依据", "真实场景拆解", "行动优先级", "30 天计划"].map((item) => (
+                <span key={item} className="border border-[#d7aa55]/25 px-3 py-2">
+                  {item}
+                </span>
+              ))}
+            </div>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {followupPresets.map((preset) => (
                 <button
@@ -283,13 +310,46 @@ export function ReportDetail({
             >
               {followupLoading ? "正在生成专属解析..." : `继续深度追问 ${siteConfig.followupPriceLabel}`}
             </button>
-            {followup ? (
-              <article className="mt-5 border border-[#d7aa55]/30 bg-[#fffaf2] p-5 text-[#2c271f]">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9a671e]">
-                  专属追问解析
-                </p>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-8">{followup.answer}</p>
-              </article>
+            {followupHistory.length ? (
+              <div className="mt-6 grid gap-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-[#d7aa55]">
+                    专属追问档案 · {followupHistory.length} 条
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearReportFollowups(reportId);
+                      setFollowupHistory([]);
+                    }}
+                    className="text-xs text-[#9d9589] underline underline-offset-4"
+                  >
+                    清空本机记录
+                  </button>
+                </div>
+                {followupHistory.map((item, index) => (
+                  <article
+                    key={item.id}
+                    className="border border-[#d7aa55]/35 bg-[#f7efe0] p-4 text-[#2c271f] sm:p-6"
+                  >
+                    <div className="flex items-start justify-between gap-3 border-b border-[#d9c7aa] pb-4">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9a671e]">
+                          深度追问 {String(index + 1).padStart(2, "0")}
+                        </p>
+                        <h3 className="mt-2 text-lg font-black leading-8">{item.question}</h3>
+                      </div>
+                      <span className="shrink-0 border border-[#b58a43] px-2 py-1 text-[11px] font-bold text-[#79551d]">
+                        四维融合
+                      </span>
+                    </div>
+                    <FollowupAnalysis answer={item.answer} />
+                    <p className="mt-4 text-xs text-[#887966]">
+                      {new Date(item.createdAt).toLocaleString("zh-CN")}
+                    </p>
+                  </article>
+                ))}
+              </div>
             ) : null}
           </section>
         )}

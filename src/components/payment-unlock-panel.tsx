@@ -192,10 +192,10 @@ export function PaymentUnlockPanel({
           <ol className="grid gap-2">
             <li>01 保存或复制上方订单号。</li>
             <li>02 微信扫码付款，并在付款备注中填写订单号。</li>
-            <li>03 后台核验后，本页面会自动打开对应内容。</li>
+            <li>03 支付平台回调确认后，本页面会自动打开对应内容。</li>
           </ol>
           <p className="border border-[#d7aa55]/25 bg-[#d7aa55]/8 px-3 py-2 text-xs">
-            “我已支付”不会直接解锁。服务器只有在订单状态确认为 paid 后，才会返回完整报告。
+            页面每 5 秒自动查询一次。付款确认后无需再次点击，也无需输入解锁码。
           </p>
           {message ? (
             <p className="border border-[#d7aa55]/25 px-3 py-2 text-xs text-[#f2d99a]">
@@ -208,10 +208,10 @@ export function PaymentUnlockPanel({
             disabled={!orderId || checking}
             className="h-12 bg-[linear-gradient(100deg,#8a5a18,#e7c46c,#9a671e)] px-5 font-black text-[#17130c] shadow-lg shadow-[#d7aa55]/20 disabled:opacity-50"
           >
-            {checking ? "正在核验订单..." : "我已付款，刷新订单状态"}
+            {checking ? "正在核验订单..." : "我已支付，立即核验"}
           </button>
           <p className="text-xs text-[#928a7d]">
-            当前为 MVP 人工核对。支付后无需提供解锁码；管理员确认订单后会自动放行。
+            个人微信收款码无法向网站发送到账通知，因此在接入商户支付接口前，仍需后台确认到账；确认后页面会自动跳转。
           </p>
         </div>
       </div>

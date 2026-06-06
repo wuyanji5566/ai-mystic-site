@@ -32,6 +32,8 @@ export type StoredOrder = {
   createdAt: string;
   updatedAt: string;
   paidAt?: string;
+  paymentProvider?: string;
+  paymentTransactionId?: string;
 };
 
 type ReportDatabase = Record<string, StoredReport>;
@@ -145,7 +147,12 @@ export async function listStoredOrders() {
 
 export async function updateStoredOrder(
   orderId: string,
-  patch: Partial<Pick<StoredOrder, "status" | "paidAt">>,
+  patch: Partial<
+    Pick<
+      StoredOrder,
+      "status" | "paidAt" | "paymentProvider" | "paymentTransactionId"
+    >
+  >,
 ) {
   return withMutationLock(async () => {
     const orders = await readDatabase<OrderDatabase>(ordersPath);

@@ -88,7 +88,7 @@ export async function POST(request: Request) {
           },
         ],
         temperature: 0.7,
-        max_tokens: 2200,
+        max_tokens: 3200,
       });
       const answer = completion.choices[0]?.message?.content?.trim();
       if (answer) {
