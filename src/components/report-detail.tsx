@@ -51,7 +51,6 @@ export function ReportDetail({
   initialOrderId?: string;
 }) {
   const [report, setReport] = useState<ServerReport | null>(null);
-  const [orderId, setOrderId] = useState(initialOrderId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showPayment, setShowPayment] = useState(false);
@@ -65,7 +64,7 @@ export function ReportDetail({
   const [message, setMessage] = useState("");
 
   const loadReport = useCallback(
-    async (paidOrderId = orderId) => {
+    async (paidOrderId = "") => {
       setLoading(true);
       setError("");
       try {
@@ -90,7 +89,7 @@ export function ReportDetail({
         setLoading(false);
       }
     },
-    [orderId, reportId],
+    [reportId],
   );
 
   useEffect(() => {
@@ -102,11 +101,9 @@ export function ReportDetail({
   }, [initialOrderId, loadReport]);
 
   function handleFullReportPaid(paidOrderId: string) {
-    setOrderId(paidOrderId);
     setShowPayment(false);
     const url = `/report/${reportId}?orderId=${encodeURIComponent(paidOrderId)}`;
-    window.history.replaceState(null, "", url);
-    void loadReport(paidOrderId);
+    window.location.assign(url);
   }
 
   function handleFollowupPaid(paidOrderId: string) {
