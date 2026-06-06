@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useId, useState } from "react";
 import { siteConfig } from "@/lib/site-config";
 import type { OrderProduct } from "@/lib/mvp-store";
+import type { MysticInput } from "@/lib/mystic";
 
 type PaymentUnlockPanelProps = {
   title?: string;
@@ -16,6 +17,7 @@ type PaymentUnlockPanelProps = {
   productName?: string;
   reportId?: string;
   productType?: OrderProduct;
+  reportInput?: MysticInput;
 };
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled" | "expired";
@@ -30,6 +32,7 @@ export function PaymentUnlockPanel({
   productName = "完整深度报告",
   reportId,
   productType = "full_report",
+  reportInput,
 }: PaymentUnlockPanelProps) {
   const [orderId, setOrderId] = useState("");
   const [status, setStatus] = useState<OrderStatus>("pending");
@@ -38,47 +41,52 @@ export function PaymentUnlockPanel({
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState(false);
   const requestId = useId();
+  const reportInputJson = reportInput ? JSON.stringify(reportInput) : "";
+
+  const createOrder = useCallback(async () => {
+    if (!reportId) return;
+    setCreating(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reportId,
+          productType,
+          requestKey: `${reportId}-${productType}-${requestId}`,
+          reportInput: reportInputJson
+            ? (JSON.parse(reportInputJson) as MysticInput)
+            : undefined,
+        }),
+      });
+      const data = (await response.json()) as {
+        order?: { orderId: string; status: OrderStatus };
+        error?: string;
+      };
+
+      if (!response.ok || !data.order) {
+        throw new Error(data.error || "订单创建失败");
+      }
+      setOrderId(data.order.orderId);
+      setStatus(data.order.status);
+    } catch (error) {
+      setOrderId("");
+      setMessage(
+        error instanceof Error
+          ? `${error.message} 请点击“重新创建订单”。`
+          : "订单创建失败，请点击“重新创建订单”。",
+      );
+    } finally {
+      setCreating(false);
+    }
+  }, [productType, reportId, reportInputJson, requestId]);
 
   useEffect(() => {
-    if (!reportId) return;
-    let active = true;
-
-    async function createOrder() {
-      try {
-        const response = await fetch("/api/orders/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reportId,
-            productType,
-            requestKey: `${reportId}-${productType}-${requestId}`,
-          }),
-        });
-        const data = (await response.json()) as {
-          order?: { orderId: string; status: OrderStatus };
-          error?: string;
-        };
-
-        if (!active) return;
-        if (!response.ok || !data.order) {
-          throw new Error(data.error || "订单创建失败");
-        }
-        setOrderId(data.order.orderId);
-        setStatus(data.order.status);
-      } catch (error) {
-        if (active) {
-          setMessage(error instanceof Error ? error.message : "订单创建失败，请刷新重试。");
-        }
-      } finally {
-        if (active) setCreating(false);
-      }
-    }
-
-    void createOrder();
-    return () => {
-      active = false;
-    };
-  }, [productType, reportId, requestId]);
+    const timer = window.setTimeout(() => void createOrder(), 0);
+    return () => window.clearTimeout(timer);
+  }, [createOrder]);
 
   const checkStatus = useCallback(
     async (silent = false) => {
@@ -232,6 +240,15 @@ export function PaymentUnlockPanel({
             <p className="border border-[#d7aa55]/25 px-3 py-2 text-xs text-[#f2d99a]">
               {message}
             </p>
+          ) : null}
+          {!creating && !orderId ? (
+            <button
+              type="button"
+              onClick={() => void createOrder()}
+              className="h-11 border border-[#d7aa55]/45 px-4 font-bold text-[#f2d99a]"
+            >
+              重新创建订单
+            </button>
           ) : null}
           <button
             type="button"

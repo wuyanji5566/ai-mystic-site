@@ -647,6 +647,17 @@ export function MysticReportForm() {
         <PaymentUnlockPanel
           reportId={report.reportId}
           productType="full_report"
+          reportInput={{
+            ...form,
+            name: form.name.trim() || "匿名用户",
+            birthTime: unknownTime ? "12:00" : form.birthTime,
+            birthTimeNote: unknownTime
+              ? "出生时间不确定，精度会降低"
+              : form.birthTimeNote,
+            focus: focusText,
+            mbtiCertainty:
+              form.mbtiType === "不确定" ? "unknown" : form.mbtiCertainty,
+          }}
           onUnlock={handlePaid}
           onClose={() => setShowPayment(false)}
         />

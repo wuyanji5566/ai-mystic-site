@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { generateMysticReport, mysticRequestSchema } from "@/lib/report-engine";
 import {
   createOrderId,
   getStoredReport,
+  saveStoredReport,
   saveStoredOrder,
   type OrderProduct,
 } from "@/lib/mvp-store";
@@ -10,6 +12,7 @@ const orderSchema = z.object({
   reportId: z.string().trim().min(6),
   productType: z.enum(["full_report", "followup_room"]).default("full_report"),
   requestKey: z.string().trim().min(8).max(100).optional(),
+  reportInput: mysticRequestSchema.optional(),
 });
 
 const productConfig: Record<
@@ -23,10 +26,22 @@ const productConfig: Record<
 export async function POST(request: Request) {
   try {
     const body = orderSchema.parse(await request.json());
-    const report = await getStoredReport(body.reportId);
+    let report = await getStoredReport(body.reportId);
 
-    if (!report) {
-      return Response.json({ error: "报告不存在，请重新生成。" }, { status: 404 });
+    if (!report && body.reportInput) {
+      const generated = await generateMysticReport(body.reportInput);
+      const createdAt = new Date().toISOString();
+      report = await saveStoredReport({
+        reportId: body.reportId,
+        title: `${body.reportInput.name}的四维人生说明书`,
+        createdAt,
+        input: body.reportInput,
+        profile: generated.profile,
+        freeReport: generated.freeReport,
+        fullReport: generated.fullReport,
+        mode: generated.mode,
+        statusMessage: generated.statusMessage,
+      });
     }
 
     const now = new Date().toISOString();
@@ -51,6 +66,7 @@ export async function POST(request: Request) {
         qrPath: "/payments/wechat-pay.jpg",
         instruction: `微信付款时请备注订单号 ${order.orderId}`,
       },
+      reportRecovered: Boolean(report),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
