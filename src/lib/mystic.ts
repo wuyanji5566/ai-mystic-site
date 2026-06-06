@@ -6,6 +6,7 @@ export type MysticInput = {
   birthTimeNote?: string;
   birthPlace: string;
   calendarType: "solar" | "lunar";
+  lunarLeapMonth?: boolean;
   mbtiType: string;
   mbtiCertainty: "known" | "estimated" | "unknown";
   focus: string;
@@ -21,6 +22,21 @@ export type MysticProfile = {
 const heavenlyStems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
 const earthlyBranches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
 const zodiacAnimals = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+const lunarMonthNames = [
+  "",
+  "正月",
+  "二月",
+  "三月",
+  "四月",
+  "五月",
+  "六月",
+  "七月",
+  "八月",
+  "九月",
+  "十月",
+  "十一月",
+  "腊月",
+];
 
 export function getWesternSign(month: number, day: number) {
   const edge = month * 100 + day;
@@ -47,14 +63,66 @@ export function getYearPillar(year: number) {
   };
 }
 
+export function lunarToSolarDate(
+  year: number,
+  month: number,
+  day: number,
+  leapMonth = false,
+) {
+  const formatter = new Intl.DateTimeFormat("zh-CN-u-ca-chinese", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    timeZone: "Asia/Shanghai",
+  });
+  const expectedMonth = `${leapMonth ? "闰" : ""}${lunarMonthNames[month]}`;
+  const start = Date.UTC(year, 0, 1, 4);
+  const end = Date.UTC(year + 1, 2, 1, 4);
+
+  for (let timestamp = start; timestamp <= end; timestamp += 86_400_000) {
+    const date = new Date(timestamp);
+    const parts = formatter.formatToParts(date);
+    const relatedYear = Number(
+      parts.find((part) => String(part.type) === "relatedYear")?.value,
+    );
+    const lunarMonth = parts.find((part) => part.type === "month")?.value;
+    const lunarDay = Number(parts.find((part) => part.type === "day")?.value);
+
+    if (
+      relatedYear === year &&
+      lunarMonth === expectedMonth &&
+      lunarDay === day
+    ) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
+  return null;
+}
+
 export function buildMysticProfile(input: MysticInput): MysticProfile {
   const [yearText, monthText, dayText] = input.birthDate.split("-");
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
   const { pillar, zodiac } = getYearPillar(year);
-  const westernSign = getWesternSign(month, day);
+  const convertedSolarDate =
+    input.calendarType === "lunar"
+      ? lunarToSolarDate(year, month, day, input.lunarLeapMonth)
+      : input.birthDate;
+  const [, solarMonthText, solarDayText] = (
+    convertedSolarDate || input.birthDate
+  ).split("-");
+  const westernSign = convertedSolarDate
+    ? getWesternSign(Number(solarMonthText), Number(solarDayText))
+    : "星座待确认";
   const calendarLabel = input.calendarType === "solar" ? "公历" : "农历";
+  const leapLabel =
+    input.calendarType === "lunar" && input.lunarLeapMonth ? "（闰月）" : "";
+  const conversionLabel =
+    input.calendarType === "lunar" && convertedSolarDate
+      ? `，对应公历 ${convertedSolarDate}`
+      : "";
   const timeLabel = input.birthTimeNote
     ? `${input.birthTime}（${input.birthTimeNote}）`
     : input.birthTime;
@@ -67,7 +135,7 @@ export function buildMysticProfile(input: MysticInput): MysticProfile {
     zodiac,
     westernSign,
     yearPillar: pillar,
-    birthSummary: `${input.name || "匿名用户"}，${input.gender}，${calendarLabel} ${input.birthDate} ${timeLabel} 出生于 ${input.birthPlace}；${mbtiLabel}。当前版本对八字采用出生信息节律分析，对紫微采用人生结构倾向分析，不冒充专业精确排盘。`,
+    birthSummary: `${input.name || "匿名用户"}，${input.gender}，${calendarLabel} ${input.birthDate}${leapLabel}${conversionLabel} ${timeLabel} 出生于 ${input.birthPlace}；${mbtiLabel}。当前版本对八字采用出生信息节律分析，对紫微采用人生结构倾向分析，不冒充专业精确排盘。`,
   };
 }
 

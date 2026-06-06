@@ -26,6 +26,7 @@ export function buildMysticPrompt(input: MysticInput, profile: MysticProfile) {
 - 性别：${input.gender}
 - 历法：${input.calendarType === "solar" ? "公历" : "农历"}
 - 出生日期：${input.birthDate}
+- 是否闰月：${input.calendarType === "lunar" ? (input.lunarLeapMonth ? "是" : "否") : "不适用"}
 - 出生时间：${input.birthTime}
 - 时间说明：${input.birthTimeNote || "用户提供了具体时间"}
 - 出生地点：${input.birthPlace}

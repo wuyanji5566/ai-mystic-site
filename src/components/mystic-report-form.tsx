@@ -26,6 +26,7 @@ const initialForm: MysticInput = {
   birthTimeNote: "",
   birthPlace: "",
   calendarType: "solar",
+  lunarLeapMonth: false,
   mbtiType: "不确定",
   mbtiCertainty: "unknown",
   focus: "",
@@ -107,9 +108,10 @@ export function MysticReportForm() {
     [],
   );
   const daysInSelectedMonth = useMemo(() => {
+    if (form.calendarType === "lunar") return 30;
     if (!birthYear || !birthMonth) return 31;
     return new Date(Number(birthYear), Number(birthMonth), 0).getDate();
-  }, [birthMonth, birthYear]);
+  }, [birthMonth, birthYear, form.calendarType]);
 
   useEffect(() => {
     if (!loading) return;
@@ -125,7 +127,11 @@ export function MysticReportForm() {
 
   function updateBirthDate(year: string, month: string, day: string) {
     const maxDay =
-      year && month ? new Date(Number(year), Number(month), 0).getDate() : 31;
+      form.calendarType === "lunar"
+        ? 30
+        : year && month
+          ? new Date(Number(year), Number(month), 0).getDate()
+          : 31;
     const safeDay = day ? String(Math.min(Number(day), maxDay)) : "";
     setBirthYear(year);
     setBirthMonth(month);
@@ -136,6 +142,19 @@ export function MysticReportForm() {
         ? `${year}-${month.padStart(2, "0")}-${safeDay.padStart(2, "0")}`
         : "",
     );
+  }
+
+  function changeCalendarType(calendarType: "solar" | "lunar") {
+    setForm((current) => ({
+      ...current,
+      calendarType,
+      lunarLeapMonth: false,
+      birthDate: "",
+    }));
+    setBirthYear("");
+    setBirthMonth("");
+    setBirthDay("");
+    setError("");
   }
 
   function validate(targetStep: 1 | 2 | 3) {
@@ -277,6 +296,30 @@ export function MysticReportForm() {
             </label>
             <fieldset className="grid gap-2 text-sm font-bold sm:col-span-2">
               <legend>出生日期</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["solar", "公历日期"],
+                  ["lunar", "农历日期"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => changeCalendarType(value)}
+                    className={
+                      form.calendarType === value
+                        ? "h-11 border border-[#d7aa55] bg-[#d7aa55] font-black text-[#17130c]"
+                        : "h-11 border border-[#d7aa55]/25 bg-[#0b100e] font-bold text-[#c9c0b1]"
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs font-normal leading-6 text-[#9f988e]">
+                {form.calendarType === "solar"
+                  ? "请选择身份证或常用记录中的公历出生日期。"
+                  : "请选择农历出生年月日；系统会换算公历后计算星座。"}
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 <select
                   aria-label="出生年份"
@@ -297,9 +340,15 @@ export function MysticReportForm() {
                   }
                   className={fieldClass}
                 >
-                  <option value="">月份</option>
+                  <option value="">
+                    {form.calendarType === "lunar" ? "农历月" : "月份"}
+                  </option>
                   {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((month) => (
-                    <option key={month} value={month}>{month} 月</option>
+                    <option key={month} value={month}>
+                      {form.calendarType === "lunar"
+                        ? ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "腊月"][Number(month) - 1]
+                        : `${month} 月`}
+                    </option>
                   ))}
                 </select>
                 <select
@@ -316,6 +365,24 @@ export function MysticReportForm() {
                   ))}
                 </select>
               </div>
+              {form.calendarType === "lunar" ? (
+                <label className="flex items-start gap-3 border border-[#d7aa55]/18 bg-black/15 p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.lunarLeapMonth)}
+                    onChange={(event) =>
+                      update("lunarLeapMonth", event.target.checked)
+                    }
+                    className="mt-1 accent-[#d7aa55]"
+                  />
+                  <span>
+                    <strong className="block">这是闰月</strong>
+                    <span className="mt-1 block text-xs font-normal leading-6 text-[#9f988e]">
+                      只有明确知道出生月份是“闰某月”时才勾选。
+                    </span>
+                  </span>
+                </label>
+              ) : null}
             </fieldset>
             <label className="grid gap-2 text-sm font-bold sm:col-span-2">
               出生时间
@@ -422,7 +489,7 @@ export function MysticReportForm() {
               </p>
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div><dt className="text-[#888f88]">称呼</dt><dd className="mt-1 font-bold">{form.name || "匿名用户"}</dd></div>
-                <div><dt className="text-[#888f88]">出生信息</dt><dd className="mt-1 font-bold">{form.birthDate} · {unknownTime ? "时间不确定" : form.birthTime}</dd></div>
+                <div><dt className="text-[#888f88]">出生信息</dt><dd className="mt-1 font-bold">{form.calendarType === "lunar" ? "农历" : "公历"} {form.birthDate}{form.calendarType === "lunar" && form.lunarLeapMonth ? "（闰月）" : ""} · {unknownTime ? "时间不确定" : form.birthTime}</dd></div>
                 <div><dt className="text-[#888f88]">出生地</dt><dd className="mt-1 font-bold">{form.birthPlace}</dd></div>
                 <div><dt className="text-[#888f88]">MBTI</dt><dd className="mt-1 font-bold">{form.mbtiType}</dd></div>
                 <div className="sm:col-span-2"><dt className="text-[#888f88]">当前关注</dt><dd className="mt-1 font-bold leading-7">{focusText}</dd></div>

@@ -6,6 +6,7 @@ import {
   buildDemoReport,
   buildFreeReport,
   buildMysticProfile,
+  lunarToSolarDate,
   type MysticInput,
 } from "@/lib/mystic";
 import { buildMysticPrompt } from "@/lib/prompts";
@@ -18,9 +19,23 @@ export const mysticRequestSchema = z.object({
   birthTimeNote: z.string().trim().max(80).optional(),
   birthPlace: z.string().trim().min(1, "请填写出生地点").max(60),
   calendarType: z.enum(["solar", "lunar"]),
+  lunarLeapMonth: z.boolean().optional(),
   mbtiType: z.string().trim().min(1).max(20),
   mbtiCertainty: z.enum(["known", "estimated", "unknown"]),
   focus: z.string().trim().min(4, "请写下你最想了解的方向").max(300),
+}).superRefine((input, context) => {
+  if (input.calendarType !== "lunar") return;
+
+  const [year, month, day] = input.birthDate.split("-").map(Number);
+  if (!lunarToSolarDate(year, month, day, input.lunarLeapMonth)) {
+    context.addIssue({
+      code: "custom",
+      path: ["birthDate"],
+      message: input.lunarLeapMonth
+        ? "该年份没有这个闰月，请取消“闰月”或重新选择。"
+        : "该农历日期不存在，请重新选择日期。",
+    });
+  }
 });
 
 export type GeneratedReport = Awaited<ReturnType<typeof generateMysticReport>>;
