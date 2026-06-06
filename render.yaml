@@ -21,6 +21,8 @@ services:
         sync: false
       - key: PAYMENT_WEBHOOK_SECRET
         sync: false
+      - key: SELF_SERVICE_UNLOCK
+        value: "true"
       - key: NEXT_PUBLIC_APP_URL
         sync: false
       - key: SUPABASE_URL

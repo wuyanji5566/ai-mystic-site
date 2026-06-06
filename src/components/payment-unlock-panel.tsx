@@ -129,6 +129,37 @@ export function PaymentUnlockPanel({
     setCopied(true);
   }
 
+  async function confirmPayment() {
+    if (!orderId) return;
+    setChecking(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/orders/${encodeURIComponent(orderId)}/self-confirm`,
+        { method: "POST" },
+      );
+      const data = (await response.json()) as {
+        unlocked?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !data.unlocked) {
+        throw new Error(data.error || "自助确认失败，请稍后重试。");
+      }
+
+      setStatus("paid");
+      setMessage("支付已确认，正在打开专属内容。");
+      onUnlock?.(orderId);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "自助确认失败，请稍后重试。",
+      );
+    } finally {
+      setChecking(false);
+    }
+  }
+
   const body = (
     <div
       className={
@@ -192,10 +223,10 @@ export function PaymentUnlockPanel({
           <ol className="grid gap-2">
             <li>01 保存或复制上方订单号。</li>
             <li>02 微信扫码付款，并在付款备注中填写订单号。</li>
-            <li>03 支付平台回调确认后，本页面会自动打开对应内容。</li>
+            <li>03 完成付款后，点击下方“我已支付”立即解锁。</li>
           </ol>
           <p className="border border-[#d7aa55]/25 bg-[#d7aa55]/8 px-3 py-2 text-xs">
-            页面每 5 秒自动查询一次。付款确认后无需再次点击，也无需输入解锁码。
+            当前采用自助确认模式：点击按钮后立即打开内容，无需等待客服审核，也无需输入解锁码。
           </p>
           {message ? (
             <p className="border border-[#d7aa55]/25 px-3 py-2 text-xs text-[#f2d99a]">
@@ -204,14 +235,14 @@ export function PaymentUnlockPanel({
           ) : null}
           <button
             type="button"
-            onClick={() => void checkStatus(false)}
+            onClick={() => void confirmPayment()}
             disabled={!orderId || checking}
             className="h-12 bg-[linear-gradient(100deg,#8a5a18,#e7c46c,#9a671e)] px-5 font-black text-[#17130c] shadow-lg shadow-[#d7aa55]/20 disabled:opacity-50"
           >
-            {checking ? "正在核验订单..." : "我已支付，立即核验"}
+            {checking ? "正在解锁内容..." : "我已支付，立即解锁"}
           </button>
           <p className="text-xs text-[#928a7d]">
-            个人微信收款码无法向网站发送到账通知，因此在接入商户支付接口前，仍需后台确认到账；确认后页面会自动跳转。
+            请确认完成付款后再点击。完整报告和四维追问室均采用相同的自助解锁流程。
           </p>
         </div>
       </div>
