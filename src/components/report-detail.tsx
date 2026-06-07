@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { FollowupArchive } from "@/components/followup-archive";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
-import { ReportSectionCards } from "@/components/report-section-cards";
+import { ReportReader } from "@/components/report-reader";
 import {
   clearReportFollowups,
   getReportFollowups,
@@ -238,11 +238,7 @@ export function ReportDetail({
           </p>
         ) : null}
 
-        <ReportSectionCards
-          report={report.report}
-          locked={!report.unlocked}
-          variant={report.unlocked ? "warm" : "light"}
-        />
+        <ReportReader report={report.report} locked={!report.unlocked} />
 
         {!report.unlocked ? (
           <section className="mt-6 border border-[#d7aa55]/45 bg-[#101412] p-5 sm:p-7">

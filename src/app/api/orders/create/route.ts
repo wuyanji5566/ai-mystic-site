@@ -1,10 +1,15 @@
 import { z } from "zod";
-import { generateMysticReport, mysticRequestSchema } from "@/lib/report-engine";
+import {
+  generateMysticReport,
+  generateQuickMysticReport,
+  mysticRequestSchema,
+} from "@/lib/report-engine";
 import {
   createOrderId,
   getStoredReport,
   saveStoredReport,
   saveStoredOrder,
+  updateStoredReportContent,
   type OrderProduct,
 } from "@/lib/mvp-store";
 
@@ -29,7 +34,7 @@ export async function POST(request: Request) {
     let report = await getStoredReport(body.reportId);
 
     if (!report && body.reportInput) {
-      const generated = await generateMysticReport(body.reportInput);
+      const generated = generateQuickMysticReport(body.reportInput);
       const createdAt = new Date().toISOString();
       report = await saveStoredReport({
         reportId: body.reportId,
@@ -42,6 +47,17 @@ export async function POST(request: Request) {
         mode: generated.mode,
         statusMessage: generated.statusMessage,
       });
+      void generateMysticReport(body.reportInput)
+        .then((complete) =>
+          updateStoredReportContent(body.reportId, {
+            fullReport: complete.fullReport,
+            mode: complete.mode,
+            statusMessage: complete.statusMessage,
+          }),
+        )
+        .catch((error) => {
+          console.error("Recovered report background generation failed:", error);
+        });
     }
 
     const now = new Date().toISOString();

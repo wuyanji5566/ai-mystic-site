@@ -40,10 +40,22 @@ export const mysticRequestSchema = z.object({
 
 export type GeneratedReport = Awaited<ReturnType<typeof generateMysticReport>>;
 
-export async function generateMysticReport(input: MysticInput) {
+export function generateQuickMysticReport(input: MysticInput) {
   const profile = buildMysticProfile(input);
+  return {
+    profile,
+    freeReport: buildFreeReport(input, profile),
+    fullReport: buildDemoReport(input, profile),
+    mode: "demo" as const,
+    statusMessage: "核心画像已生成，深度报告正在后台完善。",
+  };
+}
+
+export async function generateMysticReport(input: MysticInput) {
+  const quick = generateQuickMysticReport(input);
+  const profile = quick.profile;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  let fullReport = buildDemoReport(input, profile);
+  let fullReport = quick.fullReport;
   let mode: "ai" | "demo" = "demo";
   let statusMessage = "当前使用结构化演示报告，内容仍可完整体验。";
 
@@ -52,7 +64,7 @@ export async function generateMysticReport(input: MysticInput) {
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
       maxRetries: 1,
-      timeout: 60000,
+      timeout: 42000,
     });
 
     try {
@@ -67,7 +79,7 @@ export async function generateMysticReport(input: MysticInput) {
           { role: "user", content: buildMysticPrompt(input, profile) },
         ],
         temperature: 0.72,
-        max_tokens: 5200,
+        max_tokens: 4200,
       });
       const content = completion.choices[0]?.message?.content?.trim();
 

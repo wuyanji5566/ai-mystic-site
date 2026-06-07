@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { generateMysticReport, mysticRequestSchema } from "@/lib/report-engine";
-import { createReportId, saveStoredReport } from "@/lib/mvp-store";
+import {
+  generateMysticReport,
+  generateQuickMysticReport,
+  mysticRequestSchema,
+} from "@/lib/report-engine";
+import {
+  createReportId,
+  saveStoredReport,
+  updateStoredReportContent,
+} from "@/lib/mvp-store";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -11,7 +19,7 @@ export async function POST(request: Request) {
 
   try {
     const input = mysticRequestSchema.parse(await request.json());
-    const generated = await generateMysticReport(input);
+    const generated = generateQuickMysticReport(input);
     const reportId = createReportId();
     const createdAt = new Date().toISOString();
 
@@ -26,6 +34,18 @@ export async function POST(request: Request) {
       mode: generated.mode,
       statusMessage: generated.statusMessage,
     });
+
+    void generateMysticReport(input)
+      .then((complete) =>
+        updateStoredReportContent(reportId, {
+          fullReport: complete.fullReport,
+          mode: complete.mode,
+          statusMessage: complete.statusMessage,
+        }),
+      )
+      .catch((error) => {
+        console.error("Background report generation failed:", error);
+      });
 
     return Response.json({
       reportId,

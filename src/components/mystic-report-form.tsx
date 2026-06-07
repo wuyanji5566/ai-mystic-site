@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
-import { ReportSectionCards } from "@/components/report-section-cards";
+import { ReportReader } from "@/components/report-reader";
 import type { MysticInput, MysticProfile } from "@/lib/mystic";
 import { siteConfig } from "@/lib/site-config";
 
@@ -67,11 +67,8 @@ const mbtiTypes = [
 
 const ritualSteps = [
   "正在读取出生节律",
-  "正在构建紫微结构",
-  "正在识别星座能量",
-  "正在匹配 MBTI 行为模式",
-  "正在生成四维交叉画像",
-  "正在输出你的免费摘要",
+  "正在融合四维画像",
+  "正在生成核心摘要",
 ];
 
 const fieldClass =
@@ -82,7 +79,7 @@ export function MysticReportForm() {
   const [birthYear, setBirthYear] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [unknownTime, setUnknownTime] = useState(false);
   const [selectedFocus, setSelectedFocus] = useState<string[]>([]);
   const [accepted, setAccepted] = useState(false);
@@ -117,7 +114,7 @@ export function MysticReportForm() {
     if (!loading) return;
     const timer = window.setInterval(() => {
       setRitualIndex((current) => Math.min(current + 1, ritualSteps.length - 1));
-    }, 760);
+    }, 420);
     return () => window.clearInterval(timer);
   }, [loading]);
 
@@ -157,7 +154,7 @@ export function MysticReportForm() {
     setError("");
   }
 
-  function validate(targetStep: 1 | 2 | 3) {
+  function validate(targetStep: 1 | 2) {
     if (targetStep >= 1) {
       if (!form.birthDate) return "请选择完整出生日期。";
       if (!form.birthPlace.trim()) return "请填写出生地点。";
@@ -165,7 +162,7 @@ export function MysticReportForm() {
     if (targetStep >= 2 && focusText.length < 4) {
       return "请选择关注方向，或补充你现在最困惑的问题。";
     }
-    if (targetStep >= 3 && !accepted) {
+    if (targetStep >= 2 && !accepted) {
       return "请先确认已阅读隐私与内容边界说明。";
     }
     return "";
@@ -178,12 +175,12 @@ export function MysticReportForm() {
       return;
     }
     setError("");
-    setStep((current) => (current === 1 ? 2 : 3));
+    setStep(2);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const issue = validate(3);
+    const issue = validate(2);
     if (issue) {
       setError(issue);
       return;
@@ -194,8 +191,6 @@ export function MysticReportForm() {
     setError("");
     setMessage("");
     setReport(null);
-    const minimumRitual = new Promise((resolve) => window.setTimeout(resolve, 4300));
-
     try {
       const response = await fetch("/api/reports/create", {
         method: "POST",
@@ -211,7 +206,6 @@ export function MysticReportForm() {
       });
       const data = (await response.json()) as ReportResponse & { error?: string };
       if (!response.ok) throw new Error(data.error || "报告生成失败");
-      await minimumRitual;
       setReport(data);
       window.setTimeout(
         () => reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -243,11 +237,10 @@ export function MysticReportForm() {
         </p>
       </header>
 
-      <div className="mb-5 grid grid-cols-3 gap-2">
+      <div className="mb-5 grid grid-cols-2 gap-2">
         {[
-          ["01", "基础信息"],
-          ["02", "人格关注"],
-          ["03", "确认生成"],
+          ["01", "出生信息"],
+          ["02", "关注与生成"],
         ].map(([number, label], index) => {
           const active = index + 1 === step;
           const completed = index + 1 < step;
@@ -481,19 +474,11 @@ export function MysticReportForm() {
           </div>
         ) : null}
 
-        {step === 3 ? (
-          <div className="grid gap-4">
-            <div className="border border-[#d7aa55]/22 bg-[#0b100e] p-4">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#d7aa55]">
-                信息确认
-              </p>
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                <div><dt className="text-[#888f88]">称呼</dt><dd className="mt-1 font-bold">{form.name || "匿名用户"}</dd></div>
-                <div><dt className="text-[#888f88]">出生信息</dt><dd className="mt-1 font-bold">{form.calendarType === "lunar" ? "农历" : "公历"} {form.birthDate}{form.calendarType === "lunar" && form.lunarLeapMonth ? "（闰月）" : ""} · {unknownTime ? "时间不确定" : form.birthTime}</dd></div>
-                <div><dt className="text-[#888f88]">出生地</dt><dd className="mt-1 font-bold">{form.birthPlace}</dd></div>
-                <div><dt className="text-[#888f88]">MBTI</dt><dd className="mt-1 font-bold">{form.mbtiType}</dd></div>
-                <div className="sm:col-span-2"><dt className="text-[#888f88]">当前关注</dt><dd className="mt-1 font-bold leading-7">{focusText}</dd></div>
-              </dl>
+        {step === 2 ? (
+          <div className="mt-5 grid gap-4">
+            <div className="border border-[#d7aa55]/22 bg-[#0b100e] px-4 py-3 text-sm leading-7 text-[#c9c0b1]">
+              将为 <strong className="text-[#fff8ec]">{form.name || "匿名用户"}</strong>
+              {" "}融合出生节律、紫微结构、星座能量与 {form.mbtiType} 行为模式。
             </div>
             <label className="flex items-start gap-3 border border-[#d7aa55]/18 p-4 text-sm leading-7">
               <input
@@ -519,13 +504,13 @@ export function MysticReportForm() {
           {step > 1 ? (
             <button
               type="button"
-              onClick={() => setStep((current) => (current === 3 ? 2 : 1))}
+              onClick={() => setStep(1)}
               className="h-12 border border-[#d7aa55]/25 px-6 font-bold"
             >
               返回上一步
             </button>
           ) : <span />}
-          {step < 3 ? (
+          {step === 1 ? (
             <button
               type="button"
               onClick={nextStep}
@@ -599,7 +584,7 @@ export function MysticReportForm() {
           </header>
 
           <div className="mt-4">
-            <ReportSectionCards report={report.freeReport} locked />
+            <ReportReader report={report.freeReport} locked />
           </div>
 
           <section className="mt-5 border border-[#d7aa55]/45 bg-[#101412] p-5 sm:p-7">

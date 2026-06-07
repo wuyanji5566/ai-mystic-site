@@ -105,6 +105,24 @@ export async function saveStoredReport(report: StoredReport) {
   });
 }
 
+export async function updateStoredReportContent(
+  reportId: string,
+  patch: Partial<
+    Pick<StoredReport, "fullReport" | "mode" | "statusMessage">
+  >,
+) {
+  return withMutationLock(async () => {
+    const reports = await readDatabase<ReportDatabase>(reportsPath);
+    const current = reports[reportId];
+    if (!current) return null;
+
+    const updated = { ...current, ...patch };
+    reports[reportId] = updated;
+    await writeDatabase(reportsPath, reports);
+    return updated;
+  });
+}
+
 export async function getStoredReport(reportId: string) {
   const reports = await readDatabase<ReportDatabase>(reportsPath);
   return reports[reportId] ?? null;
