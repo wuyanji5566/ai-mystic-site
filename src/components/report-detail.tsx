@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { FollowupArchive } from "@/components/followup-archive";
 import { PaymentUnlockPanel } from "@/components/payment-unlock-panel";
+import { PremiumReportOverview } from "@/components/premium-report-overview";
 import { ReportReader } from "@/components/report-reader";
 import {
   clearReportFollowups,
@@ -236,6 +237,10 @@ export function ReportDetail({
           <p className="mb-5 border border-[#d7aa55]/30 bg-[#d7aa55]/8 px-4 py-3 text-sm text-[#f2d99a]">
             {message}
           </p>
+        ) : null}
+
+        {report.unlocked ? (
+          <PremiumReportOverview input={report.input} profile={report.profile} />
         ) : null}
 
         <ReportReader

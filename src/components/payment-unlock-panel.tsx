@@ -157,7 +157,11 @@ export function PaymentUnlockPanel({
       }
 
       setStatus("paid");
-      setMessage("支付已确认，正在打开专属内容。");
+      setMessage(
+        productType === "full_report"
+          ? "支付已确认，正在完成你的专属深度报告，请稍候。"
+          : "支付已确认，正在打开专属内容。",
+      );
       onUnlock?.(orderId);
     } catch (error) {
       setMessage(

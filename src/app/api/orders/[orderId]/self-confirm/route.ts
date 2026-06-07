@@ -1,4 +1,5 @@
 import { getStoredOrder, updateStoredOrder } from "@/lib/mvp-store";
+import { ensurePremiumStoredReport } from "@/lib/premium-report";
 
 export async function POST(
   _request: Request,
@@ -19,6 +20,9 @@ export async function POST(
   }
 
   if (order.status === "paid") {
+    if (order.productType === "full_report") {
+      await ensurePremiumStoredReport(order.reportId);
+    }
     return Response.json({ order, unlocked: true });
   }
 
@@ -30,6 +34,9 @@ export async function POST(
   }
 
   const now = new Date().toISOString();
+  if (order.productType === "full_report") {
+    await ensurePremiumStoredReport(order.reportId);
+  }
   const updated = await updateStoredOrder(orderId, {
     status: "paid",
     paidAt: now,

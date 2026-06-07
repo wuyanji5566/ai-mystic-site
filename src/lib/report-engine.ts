@@ -40,6 +40,14 @@ export const mysticRequestSchema = z.object({
 
 export type GeneratedReport = Awaited<ReturnType<typeof generateMysticReport>>;
 
+export function isPremiumReportReady(report: string, mode: "ai" | "demo") {
+  if (mode !== "ai" || report.length < 2800) return false;
+  const sectionCount = (
+    report.match(/(?:^|\n)\s*(?:#{1,6}\s*)?\d{1,2}[.、]\s*/g) || []
+  ).length;
+  return sectionCount >= 11;
+}
+
 export function generateQuickMysticReport(input: MysticInput) {
   const profile = buildMysticProfile(input);
   return {
@@ -64,7 +72,7 @@ export async function generateMysticReport(input: MysticInput) {
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
       maxRetries: 1,
-      timeout: 60000,
+      timeout: 90000,
     });
 
     try {
@@ -78,15 +86,18 @@ export async function generateMysticReport(input: MysticInput) {
           },
           { role: "user", content: buildMysticPrompt(input, profile) },
         ],
-        temperature: 0.8,
-        max_tokens: 5400,
+        temperature: 0.76,
+        max_tokens: 7000,
       });
       const content = completion.choices[0]?.message?.content?.trim();
 
-      if (content) {
+      if (content && content.length >= 2800) {
         fullReport = content;
         mode = "ai";
         statusMessage = "四维人生画像已生成。";
+      } else if (content) {
+        console.warn("AI report was shorter than expected, using structured fallback.");
+        statusMessage = "AI 深度报告内容不完整，已使用结构化备用报告。";
       }
     } catch (error) {
       console.error("AI report generation failed, using demo report:", error);

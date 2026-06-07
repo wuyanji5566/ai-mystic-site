@@ -51,6 +51,39 @@ function getSectionNumber(section: ReportSection) {
   return match ? Number(match[1]) : 0;
 }
 
+function SectionBody({ body }: { body: string }) {
+  const blocks = body
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="grid gap-3">
+      {blocks.map((block, index) => {
+        const label = block.match(/^【([^】]+)】\s*(.*)$/);
+        if (!label) {
+          return (
+            <p key={`${block.slice(0, 20)}-${index}`} className="text-[15px] leading-8 text-[#554b3f]">
+              {block}
+            </p>
+          );
+        }
+        return (
+          <div
+            key={`${label[1]}-${index}`}
+            className="border-l-2 border-[#b7862d] bg-[#f7efdf] px-4 py-3"
+          >
+            <strong className="block text-xs tracking-[0.12em] text-[#8a641d]">
+              {label[1]}
+            </strong>
+            <p className="mt-1 text-[15px] leading-8 text-[#554b3f]">{label[2]}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ReportReader({
   report,
   input,
@@ -140,9 +173,7 @@ export function ReportReader({
                 </span>
               </summary>
               <div className="border-t border-[#9a742d]/18 px-4 py-4 sm:px-5">
-                <p className="whitespace-pre-wrap text-[15px] leading-8 text-[#554b3f]">
-                  {section.body}
-                </p>
+                <SectionBody body={section.body} />
               </div>
             </details>
           ))}

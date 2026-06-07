@@ -3,13 +3,14 @@ import {
   getStoredReport,
   isPaidOrderForReport,
 } from "@/lib/mvp-store";
+import { ensurePremiumStoredReport } from "@/lib/premium-report";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const report = await getStoredReport(id);
+  let report = await getStoredReport(id);
 
   if (!report) {
     return Response.json({ error: "未找到报告。" }, { status: 404 });
@@ -18,6 +19,9 @@ export async function GET(
   const orderId = new URL(request.url).searchParams.get("orderId")?.trim() || "";
   const order = orderId ? await getStoredOrder(orderId) : null;
   const unlocked = isPaidOrderForReport(order, id, "full_report");
+  if (unlocked) {
+    report = (await ensurePremiumStoredReport(id)) ?? report;
+  }
 
   return Response.json({
     report: {
