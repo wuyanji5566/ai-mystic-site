@@ -584,7 +584,20 @@ export function MysticReportForm() {
           </header>
 
           <div className="mt-4">
-            <ReportReader report={report.freeReport} locked />
+            <ReportReader
+              report={report.freeReport}
+              input={{
+                ...form,
+                name: form.name.trim() || "匿名用户",
+                birthTime: unknownTime ? "12:00" : form.birthTime,
+                birthTimeNote: unknownTime
+                  ? "出生时间不确定，精度会降低"
+                  : form.birthTimeNote,
+                focus: focusText,
+              }}
+              profile={report.profile}
+              locked
+            />
           </div>
 
           <section className="mt-5 border border-[#d7aa55]/45 bg-[#101412] p-5 sm:p-7">

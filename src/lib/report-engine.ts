@@ -64,7 +64,7 @@ export async function generateMysticReport(input: MysticInput) {
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
       maxRetries: 1,
-      timeout: 42000,
+      timeout: 60000,
     });
 
     try {
@@ -74,12 +74,12 @@ export async function generateMysticReport(input: MysticInput) {
           {
             role: "system",
             content:
-              "你是严谨、有温度的中文个人成长报告顾问。严格遵守用户要求的 12 模块结构，避免重复和绝对化判断。",
+              "你是有多年一对一咨询经验的中文个人成长顾问。每份报告必须像只写给当前用户，使用其具体资料和现实问题形成判断；严格遵守 12 模块结构，避免重复句式、万能描述、机械罗列和绝对化判断。",
           },
           { role: "user", content: buildMysticPrompt(input, profile) },
         ],
-        temperature: 0.72,
-        max_tokens: 4200,
+        temperature: 0.8,
+        max_tokens: 5400,
       });
       const content = completion.choices[0]?.message?.content?.trim();
 

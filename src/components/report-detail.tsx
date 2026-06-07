@@ -238,7 +238,12 @@ export function ReportDetail({
           </p>
         ) : null}
 
-        <ReportReader report={report.report} locked={!report.unlocked} />
+        <ReportReader
+          report={report.report}
+          input={report.input}
+          profile={report.profile}
+          locked={!report.unlocked}
+        />
 
         {!report.unlocked ? (
           <section className="mt-6 border border-[#d7aa55]/45 bg-[#101412] p-5 sm:p-7">

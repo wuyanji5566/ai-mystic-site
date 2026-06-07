@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PersonalizedReportDashboard } from "@/components/personalized-report-dashboard";
+import type { MysticInput, MysticProfile } from "@/lib/mystic";
 import { parseReportSections, type ReportSection } from "@/lib/report-sections";
 
 type ReportReaderProps = {
   report: string;
+  input: MysticInput;
+  profile: MysticProfile;
   locked?: boolean;
 };
 
@@ -47,7 +51,12 @@ function getSectionNumber(section: ReportSection) {
   return match ? Number(match[1]) : 0;
 }
 
-export function ReportReader({ report, locked = false }: ReportReaderProps) {
+export function ReportReader({
+  report,
+  input,
+  profile,
+  locked = false,
+}: ReportReaderProps) {
   const sections = useMemo(() => parseReportSections(report), [report]);
   const availableGroups = useMemo(
     () =>
@@ -71,7 +80,9 @@ export function ReportReader({ report, locked = false }: ReportReaderProps) {
   if (!activeGroup) return null;
 
   return (
-    <section className="overflow-hidden border border-[#d7aa55]/35 bg-[#0e1311]">
+    <>
+      <PersonalizedReportDashboard input={input} profile={profile} />
+      <section className="overflow-hidden border border-[#d7aa55]/35 bg-[#0e1311]">
       <header className="border-b border-[#d7aa55]/20 p-4 sm:p-5">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -148,6 +159,7 @@ export function ReportReader({ report, locked = false }: ReportReaderProps) {
           </p>
         </footer>
       ) : null}
-    </section>
+      </section>
+    </>
   );
 }
